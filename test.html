@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+</head>
+
+<body>
+    <div class="container">
+
+        <button id="connect">Connect to MetaMask</button>
+
+        <div id="mask" style="display: none">
+            <label class="col-lg-2 control-label">It seems your browser doesn't support MetaMask or it is not
+                installed.</label>
+            <label class="col-lg-2 control-label">Go to the <a href="https://metamask.io">MetaMask Website</a> for more
+                details</label>
+        </div>
+
+        <!-- ------------------------------------------------------------------------------------------------------------ -->
+        <!-- ------------------------------------------------------------------------------------------------------------ -->
+        <!-- ------------------------------------------------------------------------------------------------------------ -->
+
+        <div>
+            <div id="etherBalance" class="response">
+                <label class="col-lg-2 control-label">0</label>
+            </div>
+            <button id="etherBalanceButton">Get Ether Balance</button>
+        </div>
+
+        <label class="col-lg-2 control-label">Amount in Ether</label>
+        <input id="ether" type="text">
+
+        <label class="col-lg-2 control-label">To</label>
+        <input id="to" type="text">
+
+        <label class="col-lg-2 control-label">Fun message (can be blank)</label>
+        <input id="message" type="text">
+
+        <a id="sendEth" class="response" href="https://kovan.etherscan.io/tx/">
+            <label class="col-lg-2 control-label">0</label>
+        </a>
+        <button id="sendEthButton">Send Eth</button>
+
+        <!-- ------------------------------------------------------------------------------------------------------------ -->
+        <!-- ------------------------------------------------------------------------------------------------------------ -->
+        <!-- ------------------------------------------------------------------------------------------------------------ -->
+
+        <div class="dropdown">
+            <button onclick="dropIt()" id="dropbtn">Dropdown</button>
+            <div id="myDropdown" class="dropdown-content">
+                <p onclick="doSomething(this);">DAI</p>
+                <p onclick="doSomething(this);">GUSD</p>
+                <p onclick="doSomething(this);">BAL</p>
+            </div>
+        </div>
+
+        <div>
+            <div id="tokenBalance" class="response">
+                <label class="col-lg-2 control-label">0</label>
+            </div>
+            <button id="tokenBalanceButton">Get Token Balance</button>
+        </div>
+
+        <label class="col-lg-2 control-label">Amount in Token</label>
+        <input id="token" type="text">
+
+        <label class="col-lg-2 control-label">To</label>
+        <input id="toToken" type="text">
+
+        <a id="sendToken" class="response" href="">
+            <label class="col-lg-2 control-label">0</label>
+        </a>
+        <button id="sendTokenButton">Send Token</button>
+
+    </div>
+
+    <a href="https://chriscrutt.github.io/icoContract/test-copy.html">https://chriscrutt.github.io/icoContract/test-copy.html</a>
+
+</body>
+
+<script src="main-copy.js"></script>
+
+</html>

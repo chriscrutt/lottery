@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@0.2.6/dist/web3.min.js"></script>
+
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>Buy Our Token!</h1>
+
+        <button id="connect" onClick="ethereum.request({ method: 'eth_requestAccounts' });">Connect to MetaMask</button>
+
+        <label for="name" class="col-lg-2 control-label">Amount in Ether</label>
+        <input class="ether" id="name" type="text">
+
+        <label class="col-lg-2 control-label">Amount in Token</label>
+        <input class="token" type="text">
+
+        <button id="buy">make purchase</button>
+
+        <h1>Check Token Balance!</h1>
+        <button id="balance">check balance</button>
+
+        <label id="tokens" class="col-lg-2 control-label"></label>
+
+        <div id="mask" style="display: none">
+            <label class="col-lg-2 control-label">It seems your browser doesn't support MetaMask or it is not
+                installed.</label>
+            <label class="col-lg-2 control-label">Go to the <a href="https://metamask.io">MetaMask Website</a> for more
+                details</label>
+        </div>
+
+
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <script>
+        var myEther;
+
+        if (typeof window.ethereum === 'undefined') {
+            document.getElementById("mask").style.display = "block";
+        }
+
+        $(document).ready(function () {
+            $(".ether").change(function () {
+                $(".token").val(Math.round($(".ether").val() * 625));
+                $(".ether").val($(".token").val() / 625);
+                myEther = $(".ether").val();
+            });
+            $(".token").change(function () {
+                $(".ether").val($(".token").val() / 625);
+                myEther = $(".ether").val();
+            });
+        });
+
+        var icoContract =
+            web3.eth.contract([{
+                "name": "Buy",
+                "inputs": [{
+                    "type": "address",
+                    "name": "_buyer",
+                    "indexed": true
+                }, {
+                    "type": "uint256",
+                    "name": "_buy_order",
+                    "indexed": false
+                }],
+                "anonymous": false,
+                "type": "event"
+            }, {
+                "name": "Pay",
+                "inputs": [{
+                    "type": "address",
+                    "name": "_vendor",
+                    "indexed": true
+                }, {
+                    "type": "uint256",
+                    "name": "_amount",
+                    "indexed": false
+                }],
+                "anonymous": false,
+                "type": "event"
+            }, {
+                "outputs": [],
+                "inputs": [{
+                    "type": "address",
+                    "name": "_tokenAddress"
+                }],
+                "constant": false,
+                "payable": false,
+                "type": "constructor"
+            }, {
+                "name": "mintIt",
+                "outputs": [],
+                "inputs": [{
+                    "type": "address",
+                    "name": "_to"
+                }, {
+                    "type": "uint256",
+                    "name": "_value"
+                }],
+                "constant": false,
+                "payable": false,
+                "type": "function",
+                "gas": 4509
+            }, {
+                "name": "burnIt",
+                "outputs": [],
+                "inputs": [{
+                    "type": "uint256",
+                    "name": "_value"
+                }],
+                "constant": false,
+                "payable": false,
+                "type": "function",
+                "gas": 60388
+            }, {
+                "name": "transferIt",
+                "outputs": [],
+                "inputs": [{
+                    "type": "address",
+                    "name": "_to"
+                }, {
+                    "type": "uint256",
+                    "name": "_value"
+                }],
+                "constant": false,
+                "payable": false,
+                "type": "function",
+                "gas": 5132
+            }, {
+                "name": "stockAvailable",
+                "outputs": [{
+                    "type": "uint256",
+                    "name": ""
+                }],
+                "inputs": [],
+                "constant": true,
+                "payable": false,
+                "type": "function",
+                "gas": 5322
+            }, {
+                "name": "buyStock",
+                "outputs": [],
+                "inputs": [],
+                "constant": false,
+                "payable": true,
+                "type": "function",
+                "gas": 8629
+            }, {
+                "name": "getHolding",
+                "outputs": [{
+                    "type": "uint256",
+                    "name": ""
+                }],
+                "inputs": [{
+                    "type": "address",
+                    "name": "_stockholder"
+                }],
+                "constant": true,
+                "payable": false,
+                "type": "function",
+                "gas": 4852
+            }, {
+                "name": "cash",
+                "outputs": [{
+                    "type": "uint256",
+                    "name": ""
+                }],
+                "inputs": [],
+                "constant": true,
+                "payable": false,
+                "type": "function",
+                "gas": 623
+            }, {
+                "name": "payBill",
+                "outputs": [],
+                "inputs": [{
+                    "type": "address",
+                    "name": "vendor"
+                }, {
+                    "type": "uint256",
+                    "name": "amount"
+                }],
+                "constant": false,
+                "payable": false,
+                "type": "function",
+                "gas": 38231
+            }, {
+                "name": "price",
+                "outputs": [{
+                    "type": "uint256",
+                    "name": ""
+                }],
+                "inputs": [],
+                "constant": true,
+                "payable": false,
+                "type": "function",
+                "gas": 1481
+            }, {
+                "name": "owner",
+                "outputs": [{
+                    "type": "address",
+                    "name": ""
+                }],
+                "inputs": [],
+                "constant": true,
+                "payable": false,
+                "type": "function",
+                "gas": 1511
+            }]).at('0xb2a6e559558f817d81503968e62ec7e4c6afe694');
+        console.log("icoContract", icoContract);
+
+        const buyButton = document.getElementById('buy');
+
+        buyButton.addEventListener('click', () => {
+            try {
+                ethereum.enable();
+            } catch (error) {
+                console.log(error)
+            }
+            icoContract.buyStock.sendTransaction({
+                from: web3.eth.accounts[0],
+                value: myEther * 10 ** 18,
+            }, function (error, result) { //get callback from function which is your transaction key
+                if (!error) {
+                    console.log("result", result);
+
+                } else {
+                    console.log("error", error);
+                }
+            });
+
+        });
+
+        const balanceButton = document.getElementById('balance');
+
+        balanceButton.addEventListener('click', () => {
+            try {
+                ethereum.enable();
+            } catch (error) {
+                console.log(error)
+            }
+            icoContract.getHolding.call(web3.eth.accounts[0], {
+                from: web3.eth.accounts[0],
+            }, function (error, result) { //get callback from function which is your transaction key
+                if (!error) {
+                    console.log("result", result);
+                    document.getElementById("tokens").innerHTML = "you own " + result.c[0] + " tokens!";
+                } else {
+                    console.log("error", error);
+                }
+            });
+
+        });
+    </script>
+
+</body>
+
+</html>
