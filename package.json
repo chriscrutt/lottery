@@ -1,0 +1,7 @@
+{
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.1"
+  }
+}
