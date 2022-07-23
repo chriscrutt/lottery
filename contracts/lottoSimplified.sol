@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
 /// @title A lottery contract
 /// @author Dr. Doofenshmirtz
 /// @notice Buy tickets with a garunteed winner every ____ blocks

@@ -3,7 +3,6 @@ pragma solidity ^0.8.15;
 
 import "./lottoSimplified.sol";
 import "./lottoERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title An extention of the lotto contract
