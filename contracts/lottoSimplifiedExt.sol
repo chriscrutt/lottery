@@ -4,6 +4,7 @@ pragma solidity ^0.8.15;
 import "./lottoSimplified.sol";
 import "./lottoERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title An extention of the lotto contract
 /// @author Dr. Doofenshmirtz
@@ -123,9 +124,9 @@ contract LottoSimplifiedExt is LottoTickets {
     /// information as to not conflict when a new lottery is started.
     function _payout() internal override {
         uint256 bal = address(this).balance;
-        uint256 moneyWon = SafeMath.div(bal * 99, 100, "divided bad :(");
+        uint256 moneyWon = Math.mulDiv(bal, 99, 100);
         uint256 fee = bal - moneyWon;
-        uint256 toTokenHolders = SafeMath.div(fee, 2, "divided wrong");
+        uint256 toTokenHolders = fee / 2;
 
         _logWinningPlayer(
             moneyWon,
@@ -187,10 +188,17 @@ contract LottoSimplifiedExt is LottoTickets {
                             _winningInfo[j].blockNumber
                         ) {
                             // give them eth according to their share m'kay Karl
-                            eth +=
-                                (_winningInfo[j].ethFee *
-                                    holder.transferSnaps[i].snapBalance) /
-                                _winningInfo[j].totalStakedSupply;
+                            // eth +=
+                            //     (_winningInfo[j].ethFee *
+                            //         holder.transferSnaps[i].snapBalance) /
+                            //     _winningInfo[j].totalStakedSupply;
+
+                            eth += Math.mulDiv(
+                                _winningInfo[j].ethFee,
+                                holder.transferSnaps[i].snapBalance,
+                                _winningInfo[j].totalStakedSupply
+                            );
+
                             // or if it happened before a payout
                         } else if (
                             holder.transferSnaps[i].blockNumber <
@@ -202,19 +210,31 @@ contract LottoSimplifiedExt is LottoTickets {
                                 _winningInfo[j].blockNumber
                             ) {
                                 // give eth accordingly
-                                eth +=
-                                    (_winningInfo[j].ethFee *
-                                        holder.transferSnaps[i].snapBalance) /
-                                    _winningInfo[j].totalStakedSupply;
+                                // eth +=
+                                //     (_winningInfo[j].ethFee *
+                                //         holder.transferSnaps[i].snapBalance) /
+                                //     _winningInfo[j].totalStakedSupply;
+
+                                eth += Math.mulDiv(
+                                    _winningInfo[j].ethFee,
+                                    holder.transferSnaps[i].snapBalance,
+                                    _winningInfo[j].totalStakedSupply
+                                );
                             }
                         }
                         // if the current loop is not NOT the holder's last tx...
                     } else {
                         // give eth accordingly
-                        eth +=
-                            (_winningInfo[j].ethFee *
-                                holder.transferSnaps[i].snapBalance) /
-                            _winningInfo[j].totalStakedSupply;
+                        // eth +=
+                        //     (_winningInfo[j].ethFee *
+                        //         holder.transferSnaps[i].snapBalance) /
+                        //     _winningInfo[j].totalStakedSupply;
+
+                        eth += Math.mulDiv(
+                            _winningInfo[j].ethFee,
+                            holder.transferSnaps[i].snapBalance,
+                            _winningInfo[j].totalStakedSupply
+                        );
                     }
                 }
             }
@@ -229,10 +249,16 @@ contract LottoSimplifiedExt is LottoTickets {
                         _winningInfo[k].blockNumber
                     ) {
                         // give eth accordingly
-                        eth +=
-                            (_winningInfo[k].ethFee *
-                                holder.transferSnaps[0].snapBalance) /
-                            _winningInfo[k].totalStakedSupply;
+                        // eth +=
+                        //     (_winningInfo[k].ethFee *
+                        //         holder.transferSnaps[0].snapBalance) /
+                        //     _winningInfo[k].totalStakedSupply;
+
+                        eth += Math.mulDiv(
+                            _winningInfo[k].ethFee,
+                            holder.transferSnaps[0].snapBalance,
+                            _winningInfo[k].totalStakedSupply
+                        );
                     }
                 }
             }
@@ -254,9 +280,10 @@ contract LottoSimplifiedExt is LottoTickets {
         uint256 halfLife
     ) private pure returns (uint256) {
         nonce -= 1;
-        initVal >>= (nonce / halfLife);
+        initVal >>= nonce / halfLife;
         nonce %= halfLife;
-        uint256 price = initVal - (initVal * nonce) / halfLife / 2;
+        // uint256 price = initVal - (initVal * nonce) / halfLife / 2;
+        uint256 price = initVal - Math.mulDiv(initVal, nonce, halfLife / 2);
         return price;
     }
 }
