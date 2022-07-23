@@ -64,6 +64,8 @@ contract LottoTickets {
     uint256 public lottoNonce;
     // starting point for token mint rewards
     uint256 public initialTokenReward;
+    // all time pot
+    uint256 public allTimePot;
     // array to look at past history of winners
     WinningInfo[] internal _winningInfo;
 
@@ -175,6 +177,12 @@ contract LottoTickets {
         endingBlock = block.number + blocksToWait;
 
         // give a token??
+    }
+
+    /// @notice all winnings added up
+    /// @dev only have a function here cause I think web3 might need it in ABI
+    function allTimeWinnings() public view returns (uint256) {
+        return allTimePot;
     }
 
     /// @notice finds a ticket's owner

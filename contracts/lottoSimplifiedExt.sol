@@ -127,6 +127,8 @@ contract LottoSimplifiedExt is LottoTickets {
         uint256 fee = bal - moneyWon;
         uint256 toTokenHolders = fee / 2;
 
+        allTimePot += moneyWon;
+
         _logWinningPlayer(
             moneyWon,
             lottoToken.totalSupply(),
