@@ -1,3 +1,5 @@
+var lotto;
+
 window.addEventListener("load", function () {
     if (typeof window.ethereum === "undefined") {
         document.querySelector("#connect").innerHTML = "Requires MetaMask";
@@ -5,13 +7,27 @@ window.addEventListener("load", function () {
         document.querySelector("#mask").style.display = "block";
         console.log("nooooo");
     } else {
+        lotto = getLottoInfo(true);
         colorStuff();
         signer.getAddress().then((addy) => {
             document.querySelector("#address").innerHTML = addy;
         });
-        provider.getBalance("0xF4042BE922D44B2299E6C71dCCa26982c45778E1").then((bal) => {
-            document.querySelector("#pot").innerHTML += ethers.utils.formatEther(bal);
+        provider
+            .getBalance("0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A")
+            .then((bal) => {
+                document.querySelector("#pot").innerHTML +=
+                    ethers.utils.formatEther(bal);
+            });
+        lotto.allTimePot().then((win) => {
+            document.querySelector("#allTime").innerHTML += win;
         });
+        provider.getBlockNumber().then((block) => {
+            lotto.endingBlock().then((end) => {
+                document.querySelector("#blocks").innerHTML += end - block;
+            });
+        });
+        // time left function
+        
     }
 });
 
@@ -91,20 +107,6 @@ const signer = provider.getSigner();
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const etherBalanceButton = document.querySelector("#etherBalanceButton");
-
-etherBalanceButton.addEventListener("click", async () => {
-    balance = await provider.getBalance(signer.getAddress());
-
-    document.querySelector("#etherBalance").innerHTML =
-        ethers.utils.commify(ethers.utils.formatEther(balance)) + " Ether";
-    document.querySelector("#etherBalance").style.display = "block";
-});
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
 function hexify(utf) {
     let yo = utf
         .split("")
@@ -114,61 +116,6 @@ function hexify(utf) {
     return "0x" + yo;
 }
 
-const sendEthButton = document.querySelector("#sendEthButton");
-
-//Sending Ethereum to an address
-sendEthButton.addEventListener("click", async () => {
-    const tx = signer
-        .sendTransaction({
-            to: await provider.resolveName(document.querySelector("#to").value),
-            value: ethers.utils.parseEther(
-                document.querySelector("#ether").value
-            ),
-            data: hexify(document.querySelector("#message").value),
-        })
-        .then((txHash) => {
-            document.querySelector("#sendEth").innerHTML = txHash.hash;
-            document.querySelector("#sendEth").style.display = "block";
-            document.querySelector("#sendEth").href =
-                "https://kovan.etherscan.io/tx/" + txHash.hash;
-        })
-        .catch((error) => console.error);
-});
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-function dropIt() {
-    document.getElementById("myDropdown").classList.toggle("show");
-}
-
-// Close the dropdown if the user clicks outside of it
-window.onclick = function (event) {
-    if (!event.target.matches("#dropbtn")) {
-        var dropdowns = document.getElementsByClassName("dropdown-content");
-        var i;
-        for (i = 0; i < dropdowns.length; i++) {
-            var openDropdown = dropdowns[i];
-            if (openDropdown.classList.contains("show")) {
-                openDropdown.classList.remove("show");
-            }
-        }
-    }
-};
-
-const options = document.querySelector(".options");
-
-function doSomething(a) {
-    document.querySelector("#dropbtn").innerHTML = a.innerText;
-}
-
-let tokens = {
-    BAL: "0x41286Bb1D3E870f3F750eB7E1C25d7E48c8A1Ac7",
-    DAI: "0x04DF6e4121c27713ED22341E7c7Df330F56f289B",
-    GUSD: "0x22ee6c3B011fACC530dd01fe94C58919344d6Db5",
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -177,62 +124,43 @@ let tokens = {
 // must include any fragment we wish to use
 const abi = [
     // Read-Only Functions
-    "function balanceOf(address owner) view returns (uint256)",
-    "function decimals() view returns (uint8)",
-    "function symbol() view returns (string)",
+    "function accumulatedEther(address account) view returns (uint256)",
+    "function allTimePot() view returns (uint256)",
+    "function allTimeWinnings() view returns (uint256)",
+    "function areRewardsEnabled(address account) view returns (bool)",
+    "function endingBlock() view returns (uint256)",
+    "function ethAvailable(address account) view returns (uint256)",
 
     // Authenticated Functions
-    "function transfer(address to, uint amount) returns (bool)",
+    "function buyTickets() payable",
+    "function enableRewards()",
+    "function payout()",
+    "function start()",
+    "function withdraw(address account)",
 
     // Events
-    "event Transfer(address indexed from, address indexed to, uint amount)",
+    "event Payout(address winner, uint256 id, uint256 value)",
 ];
 
-function getTokenInfo(write) {
-    try {
-        // This can be an address or an ENS name
-        let address = tokens[document.querySelector("#dropbtn").innerHTML];
+function getLottoInfo(write) {
+    // This can be an address or an ENS name
+    let address = "0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A";
 
-        if (!write) {
-            // Read-Only; By connecting to a Provider, allows:
-            // - Any constant function
-            // - Querying Filters
-            // - Populating Unsigned Transactions for non-constant methods
-            // - Estimating Gas for non-constant (as an anonymous sender)
-            // - Static Calling non-constant methods (as anonymous sender)
-            return new ethers.Contract(address, abi, provider);
-        } else {
-            // Read-Write; By connecting to a Signer, allows:
-            // - Everything from Read-Only (except as Signer, not anonymous)
-            // - Sending transactions for non-constant functions
-            return new ethers.Contract(address, abi, signer);
-        }
-    } catch (err) {
-        document.getElementById("dropbtn").innerHTML = "select a coin";
-        document.getElementById("dropbtn").style.color = "red";
-        console.error;
+    if (!write) {
+        // Read-Only; By connecting to a Provider, allows:
+        // - Any constant function
+        // - Querying Filters
+        // - Populating Unsigned Transactions for non-constant methods
+        // - Estimating Gas for non-constant (as an anonymous sender)
+        // - Static Calling non-constant methods (as anonymous sender)
+        return new ethers.Contract(address, abi, provider);
+    } else {
+        // Read-Write; By connecting to a Signer, allows:
+        // - Everything from Read-Only (except as Signer, not anonymous)
+        // - Sending transactions for non-constant functions
+        return new ethers.Contract(address, abi, signer);
     }
 }
-
-const tokenBalanceButton = document.querySelector("#tokenBalanceButton");
-
-tokenBalanceButton.addEventListener("click", async () => {
-    const erc20 = getTokenInfo(false);
-    const num = erc20
-        .balanceOf(signer.getAddress())
-        .then(async (p) => {
-            yo = await p;
-            document.querySelector("#tokenBalance").innerHTML =
-                ethers.utils.commify(
-                    ethers.utils.formatUnits(p._hex, await erc20.decimals())
-                ) +
-                " " +
-                document.querySelector("#dropbtn").innerHTML;
-            document.querySelector("#tokenBalance").style.display = "block";
-            document.getElementById("dropbtn").style.color = "white";
-        })
-        .catch((error) => console.error);
-});
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

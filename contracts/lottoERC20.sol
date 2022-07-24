@@ -135,15 +135,6 @@ contract LottoToken is ERC20, AccessControl, ERC20Permit {
         return _totalStakedSupply;
     }
 
-    /// @dev not sure if this is needed anymore?
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
-        super._beforeTokenTransfer(from, to, amount);
-    }
-
     /// @notice transfers tokens from one person to another
     /// @dev unlike "normal" ERC20 tokens- LT token data is stored in structs.
     /// This makes it possible to create a snapshot of every transaction in

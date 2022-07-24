@@ -9,7 +9,7 @@
 
     <link rel="stylesheet" type="text/css" href="main.css">
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
 </head>
 
@@ -29,6 +29,9 @@
         <p id="allTime">all time winnings </p>
         <p id="blocks">blocks left </p>
         <p id="time">time left ~</p>
+        <input id="buyInput" type="text" placeholder="1 ticket = 1 wei" onkeydown="convert();">
+        <p id="conversion">= </p>
+        <button id="buyButton">buy tickets</button>
         <p id="history">winning history </p>
         <button id="start">start</button>
         <button id="stake">enable staking</button>
@@ -43,7 +46,8 @@
 
     </div>
 
-    <a href="https://chriscrutt.github.io/icoContract/test-copy.html">https://chriscrutt.github.io/icoContract/test-copy.html</a>
+    <a
+        href="https://chriscrutt.github.io/icoContract/test-copy.html">https://chriscrutt.github.io/icoContract/test-copy.html</a>
 
 </body>
 
