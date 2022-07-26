@@ -167,7 +167,7 @@ contract LottoTickets {
     /// @dev starts the lottery timer enabling purchases of ticket bundles.
     /// can't start if one is in progress and the last winner has not been paid.
     /// cannot be from a contract - humans only-ish
-    function start() public virtual notFromContract {
+    function _start() internal {
         require(block.number > endingBlock + pauseBuffer, "round not over yet");
         require(paid, "haven't _paid out yet");
 

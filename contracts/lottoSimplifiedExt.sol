@@ -33,15 +33,25 @@ contract LottoSimplifiedExt is LottoTickets {
     constructor() {
         lottoToken = new LottoToken();
         beneficiary = address(0x8b1A1aF63bb9b3730f62c56bDa272BCC69dF4CC7);
+        _start();
+        lottoToken.mint(msg.sender, nextTokenReward());
     }
 
-    /// @notice pays out the winner!
-    function payout() external notFromContract {
+    function payoutAndRestart() external notFromContract {
         require(block.number > endingBlock + pauseBuffer, "round not over yet");
         require(!paid, "already paid out");
-
         _payout();
+        _start();
+        lottoToken.mint(msg.sender, nextTokenReward());
     }
+
+    // /// @notice pays out the winner!
+    // function payout() external notFromContract {
+    //     require(block.number > endingBlock + pauseBuffer, "round not over yet");
+    //     require(!paid, "already paid out");
+
+    //     _payout();
+    // }
 
     /// @notice withdraw ethereum fees as a token holder
     /// @dev calculates amount of eth available to withdraw here- maybe change?
@@ -93,13 +103,13 @@ contract LottoSimplifiedExt is LottoTickets {
         }
     }
 
-    /// @notice starts the lottery
-    /// @dev overrides old `start` in order to reward the "starter" tokens for
-    /// helping automate the lottery
-    function start() public override notFromContract {
-        lottoToken.mint(msg.sender, nextTokenReward());
-        super.start();
-    }
+    // /// @notice starts the lottery
+    // /// @dev overrides old `start` in order to reward the "starter" tokens for
+    // /// helping automate the lottery
+    // function start() public override notFromContract {
+    //     lottoToken.mint(msg.sender, nextTokenReward());
+    //     super.start();
+    // }
 
     /// @notice enables earning ethereum fee rewards
     function enableRewards() public {
