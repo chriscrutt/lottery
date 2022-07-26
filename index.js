@@ -1,5 +1,53 @@
 var lotto;
 
+function secondsToHms(d) {
+    d = Number(d);
+    var h = Math.floor(d / 3600);
+    var m = Math.floor(d % 3600 / 60);
+    var s = Math.floor(d % 3600 % 60);
+
+    var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
+    var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
+    var sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+    return hDisplay + mDisplay + sDisplay;
+}
+
+function convert() {
+    document.querySelector("#buyInput").value = parseInt(document.querySelector("#buyInput").value);
+    if (document.querySelector("#buyInput").value == "NaN") {
+        document.querySelector("#buyInput").value = 0;
+    }
+    document.querySelector("#conversion").innerHTML = "= " + ethers.utils.formatEther(document.querySelector("#buyInput").value) + " Ethereum";
+}
+
+function startUpdating() {
+    signer.getAddress().then((addy) => {
+        document.querySelector("#address").innerHTML = addy;
+        lotto.accumulatedEther(addy).then((accume) => {
+            document.querySelector("#pAllTime").innerHTML = accume;
+        });
+        lotto.ethAvailable(addy).then((avail) => {
+            document.querySelector("#ethAvailable").innerHTML = avail;
+        });
+    });
+    provider
+        .getBalance("0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A")
+        .then((bal) => {
+            document.querySelector("#pot").innerHTML = "pot is " +
+                ethers.utils.formatEther(bal);
+        });
+    lotto.allTimeWinnings().then((win) => {
+        document.querySelector("#allTime").innerHTML = "all time winnings " + win;
+    });
+    provider.getBlockNumber().then((block) => {
+        lotto.endingBlock().then((end) => {
+            document.querySelector("#blocks").innerHTML = "blocks " + (end - block);
+            document.querySelector("#time").innerHTML = "Time Left ~" + secondsToHms(Math.abs(end - block) * 13.87);
+        });
+    });
+    setTimeout(startUpdating, 12.57 * 1000);
+}
+
 window.addEventListener("load", function () {
     if (typeof window.ethereum === "undefined") {
         document.querySelector("#connect").innerHTML = "Requires MetaMask";
@@ -9,27 +57,11 @@ window.addEventListener("load", function () {
     } else {
         lotto = getLottoInfo(true);
         colorStuff();
-        signer.getAddress().then((addy) => {
-            document.querySelector("#address").innerHTML = addy;
-        });
-        provider
-            .getBalance("0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A")
-            .then((bal) => {
-                document.querySelector("#pot").innerHTML +=
-                    ethers.utils.formatEther(bal);
-            });
-        lotto.allTimePot().then((win) => {
-            document.querySelector("#allTime").innerHTML += win;
-        });
-        provider.getBlockNumber().then((block) => {
-            lotto.endingBlock().then((end) => {
-                document.querySelector("#blocks").innerHTML += end - block;
-            });
-        });
-        // time left function
-        
+        startUpdating();
     }
 });
+
+
 
 async function switchChains() {
     try {
@@ -103,6 +135,40 @@ ethereumButton.addEventListener("click", () => {
 
 const signer = provider.getSigner();
 
+const buyButton = document.querySelector("#buyButton");
+
+buyButton.addEventListener("click", () => {
+    // ethereum.request({ method: "eth_requestAccounts" });
+    lotto.buyTickets({ value: document.querySelector("#buyInput").value });
+});
+
+const startButton = document.querySelector("#start");
+
+startButton.addEventListener("click", () => {
+    lotto.start();
+});
+
+const stake = document.querySelector("#stake");
+
+stake.addEventListener("click", () => {
+    lotto.enableRewards();
+});
+
+const payout = document.querySelector("#payout");
+
+payout.addEventListener("click", () => {
+    lotto.payout();
+});
+
+const withdraw = document.querySelector("#withdraw");
+
+withdraw.addEventListener("click", () => {
+    signer.getAddress().then((addy) => {
+        lotto.withdraw(addy);
+    });
+});
+
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +191,6 @@ function hexify(utf) {
 const abi = [
     // Read-Only Functions
     "function accumulatedEther(address account) view returns (uint256)",
-    "function allTimePot() view returns (uint256)",
     "function allTimeWinnings() view returns (uint256)",
     "function areRewardsEnabled(address account) view returns (bool)",
     "function endingBlock() view returns (uint256)",
@@ -166,26 +231,26 @@ function getLottoInfo(write) {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const sendTokenButton = document.querySelector("#sendTokenButton");
+// const sendTokenButton = document.querySelector("#sendTokenButton");
 
 //Sending Dai to an address
-sendTokenButton.addEventListener("click", async () => {
-    const erc20_rw = getTokenInfo(true);
-    const tx = await erc20_rw
-        .transfer(
-            await provider.resolveName(
-                document.querySelector("#toToken").value
-            ),
-            ethers.utils.parseUnits(
-                document.querySelector("#token").value,
-                await erc20_rw.decimals()
-            )
-        )
-        .then((txHash) => {
-            document.querySelector("#sendToken").innerHTML = txHash.hash;
-            document.querySelector("#sendToken").style.display = "block";
-            document.querySelector("#sendToken").href =
-                "https://kovan.etherscan.io/tx/" + txHash.hash;
-        })
-        .catch((error) => console.error);
-});
+// sendTokenButton.addEventListener("click", async () => {
+//     const erc20_rw = getTokenInfo(true);
+//     const tx = await erc20_rw
+//         .transfer(
+//             await provider.resolveName(
+//                 document.querySelector("#toToken").value
+//             ),
+//             ethers.utils.parseUnits(
+//                 document.querySelector("#token").value,
+//                 await erc20_rw.decimals()
+//             )
+//         )
+//         .then((txHash) => {
+//             document.querySelector("#sendToken").innerHTML = txHash.hash;
+//             document.querySelector("#sendToken").style.display = "block";
+//             document.querySelector("#sendToken").href =
+//                 "https://kovan.etherscan.io/tx/" + txHash.hash;
+//         })
+//         .catch((error) => console.error);
+// });

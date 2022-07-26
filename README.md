@@ -1,4 +1,6 @@
 TODO
+- [ ] make it look pretty
+- [ ] payout and restart 1 function
 - [x] staking contract
 - [x] make sure ~21,000,000 get minted
 - [x] tx.origin still?
