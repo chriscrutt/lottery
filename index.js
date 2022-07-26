@@ -21,31 +21,33 @@ function convert() {
 }
 
 function startUpdating() {
-    signer.getAddress().then((addy) => {
-        document.querySelector("#address").innerHTML = addy;
-        lotto.accumulatedEther(addy).then((accume) => {
-            document.querySelector("#pAllTime").innerHTML = accume;
+    if (window.document.hasFocus()) {
+        signer.getAddress().then((addy) => {
+            document.querySelector("#address").innerHTML = addy;
+            lotto.accumulatedEther(addy).then((accume) => {
+                document.querySelector("#pAllTime").innerHTML = accume;
+            });
+            lotto.ethAvailable(addy).then((avail) => {
+                document.querySelector("#ethAvailable").innerHTML = avail;
+            });
         });
-        lotto.ethAvailable(addy).then((avail) => {
-            document.querySelector("#ethAvailable").innerHTML = avail;
+        provider
+            .getBalance("0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A")
+            .then((bal) => {
+                document.querySelector("#pot").innerHTML = "pot is " +
+                    ethers.utils.formatEther(bal);
+            });
+        lotto.allTimeWinnings().then((win) => {
+            document.querySelector("#allTime").innerHTML = "all time winnings " + win;
         });
-    });
-    provider
-        .getBalance("0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A")
-        .then((bal) => {
-            document.querySelector("#pot").innerHTML = "pot is " +
-                ethers.utils.formatEther(bal);
+        provider.getBlockNumber().then((block) => {
+            lotto.endingBlock().then((end) => {
+                document.querySelector("#blocks").innerHTML = "blocks " + (end - block);
+                document.querySelector("#time").innerHTML = "Time Left ~" + secondsToHms(Math.abs(end - block) * 13.87);
+            });
         });
-    lotto.allTimeWinnings().then((win) => {
-        document.querySelector("#allTime").innerHTML = "all time winnings " + win;
-    });
-    provider.getBlockNumber().then((block) => {
-        lotto.endingBlock().then((end) => {
-            document.querySelector("#blocks").innerHTML = "blocks " + (end - block);
-            document.querySelector("#time").innerHTML = "Time Left ~" + secondsToHms(Math.abs(end - block) * 13.87);
-        });
-    });
-    setTimeout(startUpdating, 12.57 * 1000);
+        setTimeout(startUpdating, 12.57 * 1000);
+    }
 }
 
 window.addEventListener("load", function () {
