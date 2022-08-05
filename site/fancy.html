@@ -7,6 +7,7 @@
   <link rel="icon" href="images/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="css/bootstrap.css">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
 </head>
 
 <body>
@@ -31,15 +32,15 @@
             <div class="rd-navbar-main-outer" style="background-color: #151515">
               <div class="rd-navbar-main">
                 <!-- RD Navbar Panel-->
-                <div class="rd-navbar-panel">
+                <!-- <div class="rd-navbar-panel"> -->
                   <!-- RD Navbar Brand-->
                   <img src="images/lottoLogo.svg" alt="" width="223" height="50" />
-                </div>
+                <!-- </div> -->
                 <div class="rd-navbar-main-element">
                   <div class="rd-navbar-nav-wrap">
                     <ul class="rd-navbar-nav">
-                      <li class="rd-nav-item"><a class="rd-nav-link" href="#services">Etherscan</a></li>
-                      <li class="rd-nav-item active"><a class="rd-nav-link" href="#projects">Disconnected</a></li>
+                      <li style="cursor: pointer;" class="rd-nav-item rd-nav-link"><a href="https://etherscan.io" style="color: white">Etherscan</a></li>
+                      <li style="cursor: pointer;" class="rd-nav-item rd-nav-link" id="connect" style="color: indianred">Disconnected</li>
                     </ul>
                   </div>
                 </div>
@@ -60,10 +61,15 @@
                   style="background-color: #FF931E;">THIS IS IN BETA - USE AT YOUR OWN RISK</p>
                 <h1 id="ethPot">0.000000</h1>
                 <h1>ETH POT</h1>
-                <label>≈ $<label id="usdPot">0.00</label></label>
-                <div style="display: flex; justify-content: space-evenly;">
-                  <label>blocks left<br><label id="blocksLeft">0</label></label>
-                  <label>time left<br><label id="timeLeft">0</label></label>
+                <label id="usdPot">≈ $0.00</label><br>
+                <b>All Time Winnings</b><br>
+                <div style="display: flex;">
+                  <label id="ethAllTime" style="padding-right:1em; width: 50%; text-align: right;">Ξ 0</label>
+                  <label id="usdAllTime" style="padding-left:1em; width: 50%; text-align: left;">$ 0</label>
+                </div>
+                <div style="display: flex;">
+                  <label style="padding-right:1em; width: 50%; text-align: right;"><b>blocks left</b><br><label id="blocksLeft">0</label></label>
+                  <label style="padding-left:1em; width: 50%; text-align: left;"><b>time left</b><br><label id="timeLeft">0</label></label>
                 </div>
                 <a class="button button-primary button-ujarak" href="#modalCta" data-toggle="modal"
                   data-caption-animate="fadeInUp" data-caption-delay="200">Buy Tickets</a>
@@ -130,25 +136,22 @@
           <div class="modal-header">
             <h4 style="color: #151515;">Buy Tickets</h4>
             <button class="close" type="button" data-dismiss="modal" aria-label="Close"><span
-                aria-hidden="true">×</span></button>
+                aria-hidden="true">x</span></button>
           </div>
           <div class="modal-body">
-            <form class="rd-form rd-form-variant-2 rd-mailform" data-form-output="form-output-global"
-              data-form-type="contact-modal" method="post" action="bat/rd-mailform.php">
+            <form class="rd-form rd-form-variant-2 rd-mailform">
               <div class="row row-14 gutters-14">
                 <div class="col-12">
                   <div class="form-wrap">
-                    <input class="form-input" id="contact-modal-name" type="text" name="name"
-                      data-constraints="@Required" placeholder="1 ticket = 1 wei">
-                    <label class="form-label" for="contact-modal-name"></label>
+                    <input id="ticketAmount" class="form-input" type="text" placeholder="1 ticket = 1 wei" onkeyup="convert();">
                   </div>
                 </div>
               </div>
-              <div style="color: #151515;">
-                <p>Ξ 0.00</p>
-                <p style="margin-top: 0;">$ 0.00</p>
+              <div style="color: #151515; padding-top:2px; font-size:16px">
+                <p id="buyToEth">Ξ 0.00</p>
+                <p id="buyToUsd" style="margin-top: 0;">$ 0.00</p>
               </div>
-              <button class="button button-primary button-pipaluk" type="submit">Buy</button>
+              <p id="buyButton" class="button button-primary button-pipaluk">Buy</p>
             </form>
           </div>
         </div>
@@ -168,5 +171,6 @@
   <script src="js/script.js"></script>
   <!-- coded by Himic-->
 </body>
+  <script src="js/fancy.js"></script>
 
 </html>
