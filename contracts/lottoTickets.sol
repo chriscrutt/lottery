@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import "@openzeppelin/contracts/utils/Context.sol";
-
-contract LottoTickets is Context {
-    // infinity or close to it haha
-    uint256 private constant _INFINITY = 2**256 - 1;
-    // when lottery ends
-    uint256 private _endingBlock;
+contract LottoTickets {
     // the starting ticket of each bundle purchased
     uint256[] private _bundleFirstTicketNum;
     // checks what bundle was bought by who
@@ -15,14 +9,12 @@ contract LottoTickets is Context {
     // what is the next ticket number to be purchased
     uint256 private _currentTicketId;
 
-    constructor() {
-        _endingBlock = block.number;
-    }
+    constructor() {}
 
     /// @notice updates amount of tickets purchased and by who
     /// @param to the wallet tickets are to be bought for
     /// @param amount the wallet tickets are to be bought for
-    function _buyTickets(address to, uint256 amount) private {
+    function _buyTickets(address to, uint256 amount) internal {
         // using `_currentTicketId` as key to look up individual bundles.
         // `end` finalizes amount purchased. it's -1 because buys are inclusive.
         // `player` is simply the person who's bundle of tickets these are.
