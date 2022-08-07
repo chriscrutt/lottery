@@ -69,4 +69,12 @@ contract LottoTickets {
         }
         revert();
     }
+
+    function _reset() internal {
+        for (uint256 i = 0; i < _bundleFirstTicketNum.length; ++i) {
+            delete _bundleBuyer[_bundleFirstTicketNum[i]];
+        }
+        delete _bundleFirstTicketNum;
+        _currentTicketId = 0;
+    }
 }
