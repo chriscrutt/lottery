@@ -3,7 +3,6 @@ pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
 /// @title An "special" ERC20 rewards token
 /// @author Dr. Doofenshmirtz
@@ -18,7 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 ///     .snapBalance;
 /// than just creating an additional balance variable
 
-abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
+abstract contract ERC80085 is ERC20, AccessControl {
     // logs each token transaction to help calculate withdrawable eth rewards
     struct Snapshot {
         uint256 blockNumber;
@@ -38,27 +37,26 @@ abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
     // the total supply of staked tokens
     uint256 private _totalStakedSupply;
 
-    // will be the lottery contract
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
     // a mapping of every token holder for easy lookup
     mapping(address => TokenHolder) private _holders;
 
     // creating token
-    constructor() {
-        _grantRole(DEFAULT_ADMIN_ROLE, tx.origin);
-        _grantRole(MINTER_ROLE, _msgSender());
-    }
+    constructor() {}
 
     /// @notice allows this contract to be sent Eth
-    receive() external virtual payable {}
-
+    receive() external payable virtual {}
 
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view virtual override returns (uint256) {
+    function balanceOf(address account)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         _holders[account]
             .transferSnaps[_holders[account].transferSnaps.length - 1]
             .snapBalance;
@@ -69,11 +67,7 @@ abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
     /// or contracts with `MINTER_ROLE` and will be used for withdrawing rewards
     /// @param to the lucky sole to get some eth
     /// @param amount the amount of eth to send
-    function transferWinnings(address to, uint256 amount)
-        public
-        virtual
-        onlyRole(MINTER_ROLE)
-    {
+    function transferWinnings(address to, uint256 amount) public virtual {
         unchecked {
             _holders[to].rewardsWithdrawn += amount;
         }
@@ -83,7 +77,6 @@ abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
     /// @notice enables earning ethereum fee rewards
     /// @param account to enable staking for
     function _startStaking(address account) internal virtual {
-
         _holders[account].stakedOnBlock = block.number;
 
         _totalStakedSupply += balanceOf(account);
