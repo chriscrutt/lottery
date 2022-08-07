@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 ///     .snapBalance;
 /// than just creating an additional balance variable
 
-contract ERC80085 is ERC20, AccessControl, ERC20Permit {
+abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
     // logs each token transaction to help calculate withdrawable eth rewards
     struct Snapshot {
         uint256 blockNumber;
@@ -45,7 +45,7 @@ contract ERC80085 is ERC20, AccessControl, ERC20Permit {
     mapping(address => TokenHolder) private _holders;
 
     // creating token
-    constructor() ERC20("Lotto Token", "LT") ERC20Permit("Lotto Token") {
+    constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, tx.origin);
         _grantRole(MINTER_ROLE, _msgSender());
     }
