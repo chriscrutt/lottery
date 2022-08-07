@@ -9,34 +9,56 @@ contract LottoTickets is Context {
     // when lottery ends
     uint256 private _endingBlock;
     // the starting ticket of each bundle purchased
-    uint256[] private _startingTicketNumber;
+    uint256[] private _bundleFirstTicketNum;
     // checks what bundle was bought by who
     mapping(uint256 => address) private _bundleBuyer;
+    // what is the next ticket number to be purchased
+    uint256 private _currentTicketId;
 
     constructor() {
         _endingBlock = block.number;
     }
 
+    /// @notice updates amount of tickets purchased and by who
+    /// @param to the wallet tickets are to be bought for
+    /// @param amount the wallet tickets are to be bought for
+    function _buyTickets(address to, uint256 amount) private {
+        // using `_currentTicketId` as key to look up individual bundles.
+        // `end` finalizes amount purchased. it's -1 because buys are inclusive.
+        // `player` is simply the person who's bundle of tickets these are.
+        _bundleBuyer[_currentTicketId] = to;
+
+        // push `_currentTicketId` to array as we can loop through and more
+        // efficiently see whos tickets are whos when using as it as the key.
+        _bundleFirstTicketNum.push(_currentTicketId);
+
+        // update what ticket number we are on
+        _currentTicketId += amount;
+    }
+
+    /// @notice finds a ticket's owner
+    /// @param ticketId is the ticket we wish to find who's it is
+    /// @return the address of the ticket owner!
     function _findTicketOwner(uint256 ticketId)
         internal
         view
         returns (address)
     {
         uint256 low = 0;
-        uint256 high = _startingTicketNumber.length;
+        uint256 high = _bundleFirstTicketNum.length;
         while (low < high) {
             uint256 mid = low + (high - low) / 2;
             if (
-                _startingTicketNumber[mid] <= ticketId &&
-                _startingTicketNumber[mid + 1] >= ticketId
+                _bundleFirstTicketNum[mid] <= ticketId &&
+                _bundleFirstTicketNum[mid + 1] >= ticketId
             ) {
-                return _bundleBuyer[_startingTicketNumber[mid]];
+                return _bundleBuyer[_bundleFirstTicketNum[mid]];
             } else if (
-                _startingTicketNumber[low] <= _startingTicketNumber[mid]
+                _bundleFirstTicketNum[low] <= _bundleFirstTicketNum[mid]
             ) {
                 if (
-                    ticketId >= _startingTicketNumber[low] &&
-                    ticketId < _startingTicketNumber[mid]
+                    ticketId >= _bundleFirstTicketNum[low] &&
+                    ticketId < _bundleFirstTicketNum[mid]
                 ) {
                     high = mid;
                 } else {
@@ -44,8 +66,8 @@ contract LottoTickets is Context {
                 }
             } else {
                 if (
-                    ticketId <= _startingTicketNumber[high - 1] &&
-                    ticketId > _startingTicketNumber[mid]
+                    ticketId <= _bundleFirstTicketNum[high - 1] &&
+                    ticketId > _bundleFirstTicketNum[mid]
                 ) {
                     low = mid + 1;
                 } else {

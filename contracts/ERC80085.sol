@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-
-
 /// @title An "special" ERC20 rewards token
 /// @author Dr. Doofenshmirtz
 /// @notice Withdraw Ethereum fee earnings through holding this token!
