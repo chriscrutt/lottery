@@ -14,7 +14,7 @@ contract LottoTickets {
     /// @notice updates amount of tickets purchased and by who
     /// @param to the wallet tickets are to be bought for
     /// @param amount the wallet tickets are to be bought for
-    function _buyTickets(address to, uint256 amount) internal {
+    function _mintTickets(address to, uint256 amount) internal {
         // using `_currentTicketId` as key to look up individual bundles.
         // `end` finalizes amount purchased. it's -1 because buys are inclusive.
         // `player` is simply the person who's bundle of tickets these are.
@@ -70,7 +70,7 @@ contract LottoTickets {
         revert();
     }
 
-    function _reset() internal {
+    function _reset() internal virtual {
         for (uint256 i = 0; i < _bundleFirstTicketNum.length; ++i) {
             delete _bundleBuyer[_bundleFirstTicketNum[i]];
         }
