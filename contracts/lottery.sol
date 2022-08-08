@@ -11,23 +11,27 @@ contract LottoRewardsToken is ERC80085 {
         ERC20("Lotto Rewards Token", "LT")
         ERC20Permit("Lotto Rewards Token")
     {
-        _mint(address(this), 21000000 * 10 ** decimals());
+        _mint(address(this), 21000000 * 10**decimals());
+    }
+
+    function startStaking() public {
+        _startStaking(_msgSender());
     }
 }
+
 contract Lottery is Lotto {
     LottoRewardsToken public lottoRewardsToken;
 
     address payable private _beneficiary;
     uint256 private _invertedFee;
 
-    constructor() Lotto(5, 1) payable {
+    constructor() payable Lotto(5, 1) {
         lottoRewardsToken = new LottoRewardsToken();
 
         _beneficiary = payable(address(0));
         _invertedFee = 99;
 
         buyTickets();
-
     }
 
     function _payoutAndRestart(address account, uint256 amount) private {
@@ -36,14 +40,6 @@ contract Lottery is Lotto {
         _beneficiary.transfer(address(this).balance / 2);
         payable(lottoRewardsToken).transfer(address(this).balance);
         _start();
-    }
-
-    function _calculateMintValue(uint256 tokensLeft)
-        private
-        pure
-        returns (uint256)
-    {
-        return tokensLeft / 100;
     }
 
     function payoutAndRestart() public {
@@ -56,10 +52,7 @@ contract Lottery is Lotto {
         );
 
         if (tokensLeft > 0) {
-            lottoRewardsToken.transfer(
-                _msgSender(),
-                _calculateMintValue(tokensLeft)
-            );
+            lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
         }
     }
 }

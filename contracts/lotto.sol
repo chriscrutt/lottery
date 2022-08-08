@@ -53,7 +53,7 @@ contract Lotto is LottoTickets, Context {
     function _calculateWinningInfo() internal view returns (uint256) {
         uint256 _sortaRandom = uint256(blockhash(_endingBlock + _pauseBuffer));
 
-        return _sortaRandom % currentTicketId();
+        return _sortaRandom % _currentTicket();
     }
 
     function _payout(address account, uint256 amount) internal virtual {

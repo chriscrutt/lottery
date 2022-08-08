@@ -11,7 +11,7 @@ contract LottoTickets {
 
     constructor() {}
 
-    function currentTicketId() public view returns (uint256) {
+    function _currentTicket() internal view returns (uint256) {
         return _currentTicketId;
     }
 
