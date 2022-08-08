@@ -20,11 +20,14 @@ contract Lottery is Lotto {
     address payable private _beneficiary;
     uint256 private _invertedFee;
 
-    constructor() Lotto(5, 1) {
+    constructor() Lotto(5, 1) payable {
         lottoRewardsToken = new LottoRewardsToken();
 
         _beneficiary = payable(address(0));
         _invertedFee = 99;
+
+        buyTickets();
+
     }
 
     function _payoutAndRestart(address account, uint256 amount) private {
