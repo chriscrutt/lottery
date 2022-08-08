@@ -5,16 +5,15 @@ import "./lotto.sol";
 import "./ERC80085.sol";
 
 contract LottoRewardsToken is ERC80085 {
+    // will be the lottery contract
+
     constructor()
         ERC20("Lotto Rewards Token", "LT")
         ERC20Permit("Lotto Rewards Token")
     {
-        _mint(address(this), 21000000 * decimals());
+        _mint(address(this), 21000000 * 10 ** decimals());
     }
-
-    receive() external payable {}
 }
-
 contract Lottery is Lotto {
     LottoRewardsToken public lottoRewardsToken;
 

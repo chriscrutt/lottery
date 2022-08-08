@@ -71,7 +71,7 @@ contract LottoTickets {
                 }
             }
         }
-        revert();
+        return address(0);
     }
 
     function _reset() internal virtual {

@@ -22,7 +22,7 @@ contract Lotto is LottoTickets, Context {
     /// @dev starts the lottery timer enabling purchases of ticket bundles.
     /// can't start if one is in progress and the last winner has not been paid.
     /// cannot be from a contract - humans only-ish
-    function _start() internal virtual {
+    function _start() internal {
         require(
             block.number > _endingBlock + _pauseBuffer,
             "round not over yet"
@@ -38,7 +38,7 @@ contract Lotto is LottoTickets, Context {
         emit Start(block.number, _endingBlock);
     }
 
-    function buyTickets() public payable virtual {
+    function buyTickets() public payable {
         require(block.number <= _endingBlock, "passed deadline");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
@@ -58,7 +58,7 @@ contract Lotto is LottoTickets, Context {
         return _sortaRandom % currentTicketId();
     }
 
-    function _payout(address account, uint256 amount) internal virtual {
+    function _payout(address account, uint256 amount) internal {
         require(!_paid, "already paid out");
         require(
             block.number >= _endingBlock + _pauseBuffer,

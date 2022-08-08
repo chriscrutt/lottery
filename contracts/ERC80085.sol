@@ -3,6 +3,7 @@ pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /// @title An "special" ERC20 rewards token
 /// @author Dr. Doofenshmirtz
@@ -29,6 +30,7 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         Snapshot[] transferSnaps;
         uint256 rewardsWithdrawn;
         uint256 stakedOnBlock;
+        uint256 balance;
     }
 
     // the total supply of tokens
@@ -43,6 +45,9 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
     // creating token
     constructor() {}
 
+    /// @notice allows this contract to be sent Eth
+    receive() external payable virtual {}
+
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
@@ -54,9 +59,7 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         override
         returns (uint256)
     {
-        _holders[account]
-            .transferSnaps[_holders[account].transferSnaps.length - 1]
-            .snapBalance;
+        return _holders[account].balance;
     }
 
     /// @notice transfer out some eth
@@ -77,10 +80,6 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         _holders[account].stakedOnBlock = block.number;
 
         _totalStakedSupply += balanceOf(account);
-    }
-
-    function startStaking() public virtual {
-        _startStaking(tx.origin);
     }
 
     function holderData(address account)
@@ -161,6 +160,7 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         _holders[account].transferSnaps.push(
             Snapshot({blockNumber: block.number, snapBalance: amount})
         );
+        _holders[account].balance = amount;
     }
 
     /// @notice adjusts `_totalStakedSupply` according to whether tokens are
