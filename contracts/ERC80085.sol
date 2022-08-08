@@ -3,7 +3,6 @@ pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /// @title An "special" ERC20 rewards token
 /// @author Dr. Doofenshmirtz
@@ -18,7 +17,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 ///     .snapBalance;
 /// than just creating an additional balance variable
 
-abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
+abstract contract ERC80085 is ERC20, ERC20Permit {
     // logs each token transaction to help calculate withdrawable eth rewards
     struct Snapshot {
         uint256 blockNumber;
@@ -43,9 +42,6 @@ abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
 
     // creating token
     constructor() {}
-
-    /// @notice allows this contract to be sent Eth
-    receive() external payable virtual {}
 
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
