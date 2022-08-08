@@ -83,6 +83,10 @@ abstract contract ERC80085 is ERC20, AccessControl, ERC20Permit {
         _totalStakedSupply += balanceOf(account);
     }
 
+    function startStaking() public virtual {
+        _startStaking(tx.origin);
+    }
+
     function holderData(address account)
         public
         view

@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
-
-import "./lottoRewardsToken.sol";
 import "./lottoTickets.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-contract Lottery is LottoTickets, Context {
+contract Lotto is LottoTickets, Context {
 
     event Start(uint256 startingBlock, uint256 endingBlock);
     event Payout(uint256 amount, address account);
