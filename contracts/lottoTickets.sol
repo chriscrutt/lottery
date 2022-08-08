@@ -11,6 +11,10 @@ contract LottoTickets {
 
     constructor() {}
 
+    function currentTicketId() public view returns (uint256) {
+        return _currentTicketId;
+    }
+
     /// @notice updates amount of tickets purchased and by who
     /// @param to the wallet tickets are to be bought for
     /// @param amount the wallet tickets are to be bought for

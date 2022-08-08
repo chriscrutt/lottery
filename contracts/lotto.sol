@@ -44,6 +44,20 @@ contract Lotto is LottoTickets, Context {
         _mintTickets(_msgSender(), msg.value);
     }
 
+    /// @notice pulls the winning ticket for all to see yay
+    /// @dev `_sortaRandom` is calculated by taking the block hash of the block
+    /// we specified to end ticket purchases on plus a buffer. This is difficult
+    /// to manipulate and predict. Then we get the remainder of it divided by
+    /// tickets purchased that becomes more difficult to predict the more volume
+    /// there is(?) That remainder is the winning ticket number.
+    /// @return the "random" number, how many tickets created, and the winning
+    /// number. This is to create transparency hopefully.
+    function _calculateWinningInfo() internal view returns (uint256) {
+        uint256 _sortaRandom = uint256(blockhash(_endingBlock + _pauseBuffer));
+
+        return _sortaRandom % currentTicketId();
+    }
+
     function _payout(address account, uint256 amount) internal virtual {
         require(!_paid, "already paid out");
         require(

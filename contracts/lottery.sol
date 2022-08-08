@@ -15,6 +15,11 @@ contract LottoRewardsToken is ERC80085 {
         _grantRole(DEFAULT_ADMIN_ROLE, tx.origin);
         _grantRole(MINTER_ROLE, _msgSender());
     }
+
+    function mint(address account, uint256 amount) public onlyRole(MINTER_ROLE) {
+        _mint(account, amount);
+    }
+
 }
 
 abstract contract Lottery is Lotto {
@@ -28,12 +33,22 @@ abstract contract Lottery is Lotto {
 
         _beneficiary = payable(address(0));
         _invertedFee = 99;
+
+
     }
 
-    function _payoutAndRestart(address account, uint256 amount) public {
-        _payout(account, (amount * _invertedFee) / 100);
+    function _payoutAndRestart(address account, uint256 amount) private {
+        uint256 winningAmount = (amount * _invertedFee) / 100;
+        _payout(account, (amount * winningAmount) / 100);
         _beneficiary.transfer(address(this).balance / 2);
         payable(lottoRewardsToken).transfer(address(this).balance);
         _start();
+    }
+
+    function payoutAndRestart() public {
+        uint256 winningTicket = _calculateWinningInfo();
+        address winner = _findTicketOwner(winningTicket);
+        _payoutAndRestart(winner, address(this).balance);
+        lottoRewardsToken.mint(_msgSender(), 1);
     }
 }
