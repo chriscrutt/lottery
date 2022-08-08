@@ -4,7 +4,6 @@ import "./lottoTickets.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
 contract Lotto is LottoTickets, Context {
-
     event Start(uint256 startingBlock, uint256 endingBlock);
     event Payout(uint256 amount, address account);
 
@@ -39,11 +38,7 @@ contract Lotto is LottoTickets, Context {
         emit Start(block.number, _endingBlock);
     }
 
-    function start() public virtual {
-        _start();
-    }
-    
-    function buyTickets() public virtual payable {
+    function buyTickets() public payable virtual {
         require(block.number <= _endingBlock, "passed deadline");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
@@ -60,9 +55,5 @@ contract Lotto is LottoTickets, Context {
         _paid = true;
 
         emit Payout(amount, account);
-    }
-
-    function payout(address account, uint256 amount) public virtual {
-        _payout(account, amount);
     }
 }
