@@ -233,7 +233,7 @@ contract LottoSimplifiedExt is LottoTickets {
                                 );
                             }
                         }
-                        // if the current loop is not NOT the holder's last tx...
+                        // if the current loop is the holder's last tx...
                     } else {
                         // give eth accordingly
                         // eth +=

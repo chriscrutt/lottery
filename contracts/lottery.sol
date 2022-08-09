@@ -3,15 +3,7 @@ pragma solidity ^0.8.15;
 
 import "./lotto.sol";
 import "./ERC80085.sol";
-
-// will handle each lotto win
-struct WinningInfo {
-    address winner;
-    uint256 ticketNumber;
-    uint256 winningAmount;
-    uint256 blockNumber;
-    uint256 totalStakedSupply;
-}
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract LottoRewardsToken is ERC80085 {
     // will be the lottery contract
@@ -50,6 +42,16 @@ contract LottoRewardsToken is ERC80085 {
 }
 
 contract Lottery is Lotto {
+    // will handle each lotto win
+    struct WinningInfo {
+        address winner;
+        uint256 ticketNumber;
+        uint256 winningAmount;
+        uint256 fees;
+        uint256 blockNumber;
+        uint256 totalStakedSupply;
+    }
+
     LottoRewardsToken public lottoRewardsToken;
 
     address payable private _beneficiary;
@@ -70,6 +72,7 @@ contract Lottery is Lotto {
     function _logWinningPlayer(
         address account,
         uint256 winnings,
+        uint256 fee,
         uint256 stakedSupply
     ) internal {
         // pulls random tx hash, tickets bought, and winning ticket number.
@@ -80,6 +83,7 @@ contract Lottery is Lotto {
                 winner: account,
                 ticketNumber: number,
                 winningAmount: winnings,
+                fees: fee,
                 blockNumber: block.number,
                 totalStakedSupply: stakedSupply
             })
@@ -90,13 +94,15 @@ contract Lottery is Lotto {
         uint256 winningAmount = (amount * _invertedFee) / 100;
         _payout(account, winningAmount);
         _beneficiary.transfer(address(this).balance / 2);
-        payable(lottoRewardsToken).transfer(address(this).balance);
 
         _logWinningPlayer(
             account,
             winningAmount,
+            address(this).balance,
             lottoRewardsToken.totalStakedSupply()
         );
+
+        payable(lottoRewardsToken).transfer(address(this).balance);
 
         _start();
     }
@@ -112,20 +118,61 @@ contract Lottery is Lotto {
         }
     }
 
-    function _accumulatedEther(
-        address account,
-        uint256 enabledOn,
-        WinningInfo[] memory winningInfo
-    ) private view returns (uint256 eth) {
-        TokenHolder memory holder = holderData(account);
-        if (holder.transferSnaps.length > 1) {
-            for (uint256 i = 0; i < holder.transferSnaps.length; ++i) {
-                for (uint256 j = 0; j < _winningInfo.length; ++j) {
-                    if (enabledOn < _winningInfo[j].blockNumber) {
-                        continue;
+    function _accumulatedEther(address account)
+        private
+        view
+        returns (uint256 eth)
+    {
+        ERC80085.TokenHolder memory holder = lottoRewardsToken.holderData(
+            account
+        );
+        // handle if length == 0
+        uint256 holderLen = holder.transferSnaps.length;
+        for (uint256 i = 0; i < holder.transferSnaps.length; ++i) {
+            for (uint256 j = 0; j < _winningInfo.length; ++j) {
+                if (holder.stakedOnBlock > _winningInfo[j].blockNumber) {
+                    continue;
+                }
+                if (
+                    holder.transferSnaps[i].blockNumber ==
+                    _winningInfo[j].blockNumber
+                ) {
+                    eth += Math.mulDiv(
+                        _winningInfo[j].fees,
+                        holder.transferSnaps[i].snapBalance,
+                        _winningInfo[j].totalStakedSupply
+                    );
+                } else if (
+                    holder.transferSnaps[i].blockNumber <
+                    _winningInfo[j].blockNumber
+                ) {
+                    if (i < holderLen - 1) {
+                        if (
+                            holder.transferSnaps[i + 1].blockNumber >
+                            _winningInfo[j].blockNumber
+                        ) {
+                            eth += Math.mulDiv(
+                                _winningInfo[j].fees,
+                                holder.transferSnaps[i].snapBalance,
+                                _winningInfo[j].totalStakedSupply
+                            );
+                        }
+                    } else {
+                        eth += Math.mulDiv(
+                            _winningInfo[j].fees,
+                            holder.transferSnaps[i].snapBalance,
+                            _winningInfo[j].totalStakedSupply
+                        );
                     }
                 }
             }
         }
+    }
+
+    function withdrawFees() public {
+        uint256 eth = _accumulatedEther(_msgSender());
+        payable(_msgSender()).transfer(
+            eth - lottoRewardsToken.holderData(_msgSender()).rewardsWithdrawn
+        );
     }
 }
