@@ -17,6 +17,14 @@ contract Lotto is LottoTickets, Context {
         _endingBlock = block.number + blocksToWait_;
     }
 
+    function endingBlock() public view returns (uint256) {
+        return _endingBlock;
+    }
+
+    function pauseBuffer() public view returns (uint256) {
+        return _pauseBuffer;
+    }
+
     /// @dev starts the lottery timer enabling purchases of ticket bundles.
     /// can't start if one is in progress and the last winner has not been paid.
     /// cannot be from a contract - humans only-ish
@@ -50,10 +58,11 @@ contract Lotto is LottoTickets, Context {
     /// there is(?) That remainder is the winning ticket number.
     /// @return the "random" number, how many tickets created, and the winning
     /// number. This is to create transparency hopefully.
-    function _calculateWinningInfo() internal view returns (uint256) {
-        uint256 _sortaRandom = uint256(blockhash(_endingBlock + _pauseBuffer));
+    function _calculateWinningTicket() internal view returns (uint256) {
+        uint256 bHash = uint256(blockhash(_endingBlock + _pauseBuffer));
+        require(bHash != 0, "wait a few confirmations");
 
-        return _sortaRandom % _currentTicket();
+        return bHash % _currentTicket();
     }
 
     function _payout(address account, uint256 amount) internal virtual {
