@@ -18,27 +18,6 @@ contract LottoRewardsToken is ERC80085 {
     function startStaking() public {
         _startStaking(_msgSender());
     }
-
-    /// @notice withdraw ethereum fees as a token holder
-    /// @dev calculates amount of eth available to withdraw here- maybe change?
-    /// @param account replacing tx.origin/msg.sender sorry
-    // function withdraw(address account) external {
-    //     TokenHolder memory accountData = holderData(account);
-    //     require(accountData.stakedOnBlock > 0, "rewards aren't enabled");
-
-    //     uint256 etherEarned = _accumulatedEther(
-    //         account,
-    //         accountData.stakingInfo.startedOnBlock
-    //     );
-
-    //     require(
-    //         accountData.rewardsWithdrawn < etherEarned,
-    //         "withdraws up-to-date"
-    //     );
-    //     uint256 ethToSend = etherEarned - accountData.rewardsWithdrawn;
-    //     _updateWithdrawals(account, ethToSend);
-    //     _transferWinnings(payable(account), ethToSend);
-    // }
 }
 
 contract Lottery is Lotto {
@@ -64,7 +43,9 @@ contract Lottery is Lotto {
         _beneficiary = payable(address(0));
         _invertedFee = 99;
 
-        buyTickets();
+        uint256 value = msg.value / 2;
+        _mintTickets(_msgSender(), value);
+        _mintTickets(_msgSender(), msg.value - value);
     }
 
     /// @dev this updates the placeholder winning info for the current nonce and
@@ -73,15 +54,13 @@ contract Lottery is Lotto {
         address account,
         uint256 winnings,
         uint256 fee,
-        uint256 stakedSupply
+        uint256 stakedSupply,
+        uint256 winningTicket
     ) internal {
-        // pulls random tx hash, tickets bought, and winning ticket number.
-        uint256 number = _calculateWinningTicket();
-
         _winningInfo.push(
             WinningInfo({
                 winner: account,
-                ticketNumber: number,
+                ticketNumber: winningTicket,
                 winningAmount: winnings,
                 fees: fee,
                 blockNumber: block.number,
@@ -90,7 +69,15 @@ contract Lottery is Lotto {
         );
     }
 
-    function _payoutAndRestart(address account, uint256 amount) private {
+    function winningHistory() public view returns (WinningInfo[] memory) {
+        return _winningInfo;
+    }
+
+    function _payoutAndRestart(
+        address account,
+        uint256 amount,
+        uint256 winningTicket
+    ) private {
         uint256 winningAmount = (amount * _invertedFee) / 100;
         _payout(account, winningAmount);
         _beneficiary.transfer(address(this).balance / 2);
@@ -99,7 +86,8 @@ contract Lottery is Lotto {
             account,
             winningAmount,
             address(this).balance,
-            lottoRewardsToken.totalStakedSupply()
+            lottoRewardsToken.totalStakedSupply(),
+            winningTicket
         );
 
         payable(lottoRewardsToken).transfer(address(this).balance);
@@ -108,9 +96,11 @@ contract Lottery is Lotto {
     }
 
     function payoutAndRestart() public {
-        uint256 winningTicket = _calculateWinningTicket();
+        uint256 bHash = uint256(blockhash(endingBlock() + pauseBuffer()));
+        require(bHash != 0, "wait a few confirmations");
+        uint256 winningTicket = bHash % _currentTicketId;
         address winner = _findTicketOwner(winningTicket);
-        _payoutAndRestart(winner, address(this).balance);
+        _payoutAndRestart(winner, address(this).balance, winningTicket);
         uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
 
         if (tokensLeft > 0) {

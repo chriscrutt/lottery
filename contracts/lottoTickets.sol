@@ -7,11 +7,11 @@ contract LottoTickets {
     // checks what bundle was bought by who
     mapping(uint256 => address) private _bundleBuyer;
     // what is the next ticket number to be purchased
-    uint256 private _currentTicketId;
+    uint256 public _currentTicketId;
 
     constructor() {}
 
-    function _currentTicket() internal view returns (uint256) {
+    function _currentTicket() public view returns (uint256) {
         return _currentTicketId;
     }
 
@@ -35,43 +35,17 @@ contract LottoTickets {
     /// @notice finds a ticket's owner
     /// @param ticketId is the ticket we wish to find who's it is
     /// @return the address of the ticket owner!
-    function _findTicketOwner(uint256 ticketId)
-        internal
-        view
-        returns (address)
-    {
-        uint256 low = 0;
-        uint256 high = _bundleFirstTicketNum.length;
-        while (low < high) {
-            uint256 mid = low + (high - low) / 2;
-            if (
-                _bundleFirstTicketNum[mid] <= ticketId &&
-                _bundleFirstTicketNum[mid + 1] >= ticketId
-            ) {
-                return _bundleBuyer[_bundleFirstTicketNum[mid]];
-            } else if (
-                _bundleFirstTicketNum[low] <= _bundleFirstTicketNum[mid]
-            ) {
-                if (
-                    ticketId >= _bundleFirstTicketNum[low] &&
-                    ticketId < _bundleFirstTicketNum[mid]
-                ) {
-                    high = mid;
-                } else {
-                    low = mid + 1;
-                }
-            } else {
-                if (
-                    ticketId <= _bundleFirstTicketNum[high - 1] &&
-                    ticketId > _bundleFirstTicketNum[mid]
-                ) {
-                    low = mid + 1;
-                } else {
-                    high = mid;
+    function _findTicketOwner(uint256 ticketId) public view returns (address) {
+        if (ticketId < _currentTicketId) {
+            uint256 len = _bundleFirstTicketNum.length;
+            for (uint256 i = 1; i < len - 1; ++i) {
+                if (ticketId < _bundleFirstTicketNum[i]) {
+                    return _bundleBuyer[_bundleFirstTicketNum[i]];
                 }
             }
+            return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
         }
-        return address(0);
+        revert();
     }
 
     function _reset() internal virtual {

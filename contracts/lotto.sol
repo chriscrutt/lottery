@@ -58,11 +58,11 @@ contract Lotto is LottoTickets, Context {
     /// there is(?) That remainder is the winning ticket number.
     /// @return the "random" number, how many tickets created, and the winning
     /// number. This is to create transparency hopefully.
-    function _calculateWinningTicket() internal view returns (uint256) {
+    function _calculateWinningTicket() public view returns (uint256) {
+        uint256 yo = _currentTicketId;
         uint256 bHash = uint256(blockhash(_endingBlock + _pauseBuffer));
         require(bHash != 0, "wait a few confirmations");
-
-        return bHash % _currentTicket();
+        return bHash % yo;
     }
 
     function _payout(address account, uint256 amount) internal virtual {

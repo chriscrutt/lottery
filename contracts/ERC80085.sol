@@ -189,7 +189,7 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         }
     }
 
-    function _updateWithdrawals (address account, uint256 amount) internal {
+    function _updateWithdrawals(address account, uint256 amount) internal {
         unchecked {
             _holders[account].rewardsWithdrawn += amount;
         }
