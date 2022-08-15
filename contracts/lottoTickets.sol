@@ -7,7 +7,7 @@ contract LottoTickets {
     // checks what bundle was bought by who
     mapping(uint256 => address) private _bundleBuyer;
     // what is the next ticket number to be purchased
-    uint256 public _currentTicketId;
+    uint256 private _currentTicketId;
 
     constructor() {}
 

@@ -8,11 +8,18 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract LottoRewardsToken is ERC80085 {
     // will be the lottery contract
 
+    address private _creator;
+
     constructor()
         ERC20("Lotto Rewards Token", "LT")
         ERC20Permit("Lotto Rewards Token")
     {
+        _creator = _msgSender();
         _mint(_msgSender(), 21000000 * 10**decimals());
+    }
+
+    receive() external payable {
+        require(_msgSender() == _creator, "non-recoverable funds");
     }
 
     function startStaking() public {
@@ -45,6 +52,7 @@ contract Lottery is Lotto {
         _invertedFee = 99;
 
         uint256 value = msg.value / 2;
+        lottoRewardsToken.startStaking();
         _mintTickets(_msgSender(), value);
         _mintTickets(_msgSender(), msg.value - value);
     }
@@ -91,19 +99,24 @@ contract Lottery is Lotto {
             winningTicket
         );
 
-        payable(address(lottoRewardsToken)).transfer(address(this).balance);
+        payable(lottoRewardsToken).transfer(address(this).balance);
 
         _start();
     }
 
-    function payoutAndRestart() public {
+    function payoutAndRestart() public payable {
+        require(msg.value >= 2, "need 2 wei initial funding");
         uint256 bHash = uint256(blockhash(endingBlock() + pauseBuffer()));
         require(bHash != 0, "wait a few confirmations");
         uint256 winningTicket = bHash % _currentTicketId;
         address winner = _findTicketOwner(winningTicket);
         _payoutAndRestart(winner, address(this).balance, winningTicket);
         uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
-        
+
+        uint256 value = msg.value / 2;
+        _mintTickets(_msgSender(), value);
+        _mintTickets(_msgSender(), msg.value - value);
+
         if (tokensLeft > 0) {
             lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
         }
@@ -123,7 +136,8 @@ contract Lottery is Lotto {
             for (uint256 j = 0; j < _winningInfo.length; ++j) {
                 if (holder.stakedOnBlock > _winningInfo[j].blockNumber) {
                     continue;
-                } if (
+                }
+                if (
                     holder.transferSnaps[i].blockNumber ==
                     _winningInfo[j].blockNumber
                 ) {
@@ -136,23 +150,23 @@ contract Lottery is Lotto {
                     holder.transferSnaps[i].blockNumber <
                     _winningInfo[j].blockNumber
                 ) {
-                    if (i < holderLen - 1 &&
-                            holder.transferSnaps[i + 1].blockNumber >
-                            _winningInfo[j].blockNumber
-                        ) {
-                            eth += Math.mulDiv(
-                                _winningInfo[j].fees,
-                                holder.transferSnaps[i].snapBalance,
-                                _winningInfo[j].totalStakedSupply
-                            );
-                        }
-                    } else {
+                    if (
+                        i < holderLen - 1 &&
+                        holder.transferSnaps[i + 1].blockNumber >
+                        _winningInfo[j].blockNumber
+                    ) {
                         eth += Math.mulDiv(
                             _winningInfo[j].fees,
                             holder.transferSnaps[i].snapBalance,
                             _winningInfo[j].totalStakedSupply
                         );
                     }
+                } else {
+                    eth += Math.mulDiv(
+                        _winningInfo[j].fees,
+                        holder.transferSnaps[i].snapBalance,
+                        _winningInfo[j].totalStakedSupply
+                    );
                 }
             }
         }
