@@ -48,7 +48,7 @@ contract Lottery is Lotto {
         require(msg.value >= 2, "need 2 wei initial funding");
         lottoRewardsToken = new LottoRewardsToken();
 
-        _beneficiary = payable(address(0));
+        _beneficiary = payable(_msgSender());
         _invertedFee = 99;
 
         uint256 value = msg.value / 2;
