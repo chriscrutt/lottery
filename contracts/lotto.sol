@@ -12,8 +12,8 @@ contract Lotto is LottoTickets, Context {
     uint256 private _blocksToWait;
 
     constructor(uint256 blocksToWait_, uint256 pauseBuffer_) {
-        _pauseBuffer = pauseBuffer_;
         _blocksToWait = blocksToWait_;
+        _pauseBuffer = pauseBuffer_;
         _endingBlock = block.number + blocksToWait_;
     }
 
@@ -58,7 +58,7 @@ contract Lotto is LottoTickets, Context {
     /// there is(?) That remainder is the winning ticket number.
     /// @return the "random" number, how many tickets created, and the winning
     /// number. This is to create transparency hopefully.
-    function _calculateWinningTicket() public view returns (uint256) {
+    function calculateWinningTicket() public view returns (uint256) {
         uint256 yo = _currentTicketId;
         uint256 bHash = uint256(blockhash(_endingBlock + _pauseBuffer));
         require(bHash != 0, "wait a few confirmations");

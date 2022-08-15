@@ -11,7 +11,7 @@ contract LottoTickets {
 
     constructor() {}
 
-    function _currentTicket() public view returns (uint256) {
+    function currentTicketId() public view returns (uint256) {
         return _currentTicketId;
     }
 
@@ -35,7 +35,11 @@ contract LottoTickets {
     /// @notice finds a ticket's owner
     /// @param ticketId is the ticket we wish to find who's it is
     /// @return the address of the ticket owner!
-    function _findTicketOwner(uint256 ticketId) public view returns (address) {
+    function _findTicketOwner(uint256 ticketId)
+        internal
+        view
+        returns (address)
+    {
         if (ticketId < _currentTicketId) {
             uint256 len = _bundleFirstTicketNum.length;
             for (uint256 i = 1; i < len - 1; ++i) {
@@ -46,6 +50,10 @@ contract LottoTickets {
             return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
         }
         revert();
+    }
+
+    function findTicketOwner(uint256 ticketId) public view returns (address) {
+        _findTicketOwner(ticketId);
     }
 
     function _reset() internal virtual {

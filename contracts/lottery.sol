@@ -38,6 +38,7 @@ contract Lottery is Lotto {
     WinningInfo[] private _winningInfo;
 
     constructor() payable Lotto(5, 1) {
+        require(msg.value >= 2, "need 2 wei initial funding");
         lottoRewardsToken = new LottoRewardsToken();
 
         _beneficiary = payable(address(0));
@@ -90,7 +91,7 @@ contract Lottery is Lotto {
             winningTicket
         );
 
-        payable(lottoRewardsToken).transfer(address(this).balance);
+        payable(address(lottoRewardsToken)).transfer(address(this).balance);
 
         _start();
     }
@@ -102,7 +103,7 @@ contract Lottery is Lotto {
         address winner = _findTicketOwner(winningTicket);
         _payoutAndRestart(winner, address(this).balance, winningTicket);
         uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
-
+        
         if (tokensLeft > 0) {
             lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
         }
@@ -122,8 +123,7 @@ contract Lottery is Lotto {
             for (uint256 j = 0; j < _winningInfo.length; ++j) {
                 if (holder.stakedOnBlock > _winningInfo[j].blockNumber) {
                     continue;
-                }
-                if (
+                } if (
                     holder.transferSnaps[i].blockNumber ==
                     _winningInfo[j].blockNumber
                 ) {
@@ -136,8 +136,7 @@ contract Lottery is Lotto {
                     holder.transferSnaps[i].blockNumber <
                     _winningInfo[j].blockNumber
                 ) {
-                    if (i < holderLen - 1) {
-                        if (
+                    if (i < holderLen - 1 &&
                             holder.transferSnaps[i + 1].blockNumber >
                             _winningInfo[j].blockNumber
                         ) {

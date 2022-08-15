@@ -45,9 +45,6 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
     // creating token
     constructor() {}
 
-    /// @notice allows this contract to be sent Eth
-    receive() external payable virtual {}
-
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
