@@ -1,9 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.16;
 
 import "./lotto.sol";
 import "./ERC80085.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+
+/// TODO
+/// see cheaper options
+/// reorder functions
+/// remove unneccessary
+///     variables
+///     functions
+///     visibilities
+///     imports (like math)
+/// enable staking and withdrawing
+/// add comments
 
 contract LottoRewardsToken is ERC80085 {
     // will be the lottery contract

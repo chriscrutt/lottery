@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
@@ -11,11 +11,15 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 /// one ends. Token holders are rewarded with fees taken from lottery winners
 /// and may withdraw Ethereum relative to their % makeup of the total supply.
 /// TODO
-/// see if it is cheaper to do
-/// _totalStakedSupply += _holders[account]
-///     .transferSnaps[_holders[account].transferSnaps.length - 1]
-///     .snapBalance;
-/// than just creating an additional balance variable
+/// see cheaper options
+/// reorder functions
+/// remove unneccessary
+///     variables
+///     functions
+///     visibilities
+///     imports (like math)
+/// enable staking and withdrawing
+/// add comments
 
 abstract contract ERC80085 is ERC20, ERC20Permit {
     // logs each token transaction to help calculate withdrawable eth rewards

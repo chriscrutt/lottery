@@ -1,5 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.16;
+
+/// TODO
+/// see cheaper options
+/// reorder functions
+/// remove unneccessary
+///     variables
+///     functions
+///     visibilities
+///     imports (like math)
+/// enable staking and withdrawing
+/// add comments
 
 contract LottoTickets {
     // the starting ticket of each bundle purchased

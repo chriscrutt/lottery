@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.16;
 import "./lottoTickets.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+
+/// TODO
+/// see cheaper options
+/// reorder functions
+/// remove unneccessary
+///     variables
+///     functions
+///     visibilities
+///     imports (like math)
+/// enable staking and withdrawing
+/// add comments
 
 contract Lotto is LottoTickets, Context {
     event BuyTickets(address account, uint256 amount);
