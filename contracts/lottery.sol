@@ -108,7 +108,7 @@ contract Lottery is Lotto {
         require(msg.value >= 2, "need 2 wei initial funding");
         uint256 bHash = uint256(blockhash(endingBlock() + pauseBuffer()));
         require(bHash != 0, "wait a few confirmations");
-        uint256 winningTicket = bHash % _currentTicketId;
+        uint256 winningTicket = bHash % currentTicketId();
         address winner = _findTicketOwner(winningTicket);
         _payoutAndRestart(winner, address(this).balance, winningTicket);
         uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));

@@ -3,9 +3,9 @@ pragma solidity ^0.8.15;
 
 contract LottoTickets {
     // the starting ticket of each bundle purchased
-    uint256[] private _bundleFirstTicketNum;
+    uint256[] public _bundleFirstTicketNum;
     // checks what bundle was bought by who
-    mapping(uint256 => address) private _bundleBuyer;
+    mapping(uint256 => address) public _bundleBuyer;
     // what is the next ticket number to be purchased
     uint256 private _currentTicketId;
 
@@ -39,12 +39,15 @@ contract LottoTickets {
         internal
         view
         returns (address)
-    {
+    {       // 2        100000
         if (ticketId < _currentTicketId) {
+            // 0, 1, 2, 3 = 4
             uint256 len = _bundleFirstTicketNum.length;
-            for (uint256 i = 1; i < len - 1; ++i) {
+            for (uint256 i = 1; i < len; ++i) {
+                // 100 !< 0 !< 1 !< 2 < 1000000000000002
                 if (ticketId < _bundleFirstTicketNum[i]) {
-                    return _bundleBuyer[_bundleFirstTicketNum[i]];
+                    // return address
+                    return _bundleBuyer[_bundleFirstTicketNum[i - 1]];
                 }
             }
             return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
@@ -53,7 +56,7 @@ contract LottoTickets {
     }
 
     function findTicketOwner(uint256 ticketId) public view returns (address) {
-        _findTicketOwner(ticketId);
+        return _findTicketOwner(ticketId);
     }
 
     function _reset() internal virtual {
