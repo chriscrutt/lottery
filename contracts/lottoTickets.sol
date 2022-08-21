@@ -19,9 +19,9 @@ pragma solidity ^0.8.16;
 
 contract LottoTickets {
     // the starting ticket of each bundle purchased
-    uint256[] public _bundleFirstTicketNum;
+    uint256[] private _bundleFirstTicketNum;
     // checks what bundle was bought by who
-    mapping(uint256 => address)[] public _bundleBuyer;
+    mapping(uint256 => address)[] private _bundleBuyer;
     // what is the next ticket number to be purchased
     uint256 private _currentTicketId;
 
@@ -103,6 +103,7 @@ contract LottoTickets {
     }
 
     function findTicketOwner(uint256 ticketId) public view returns (address) {
+        require(ticketId < _currentTicketId, "ticket ID out of bounds");
         return _findTicketOwner(ticketId);
     }
 

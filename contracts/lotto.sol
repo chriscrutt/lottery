@@ -15,6 +15,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 /// subtract before sending funds
 /// see if loop runs out of gas
 /// make sure ALL eth gets sent
+/// is setting `bHash` worth it?
 
 contract Lotto is LottoTickets, Context {
     event BuyTickets(address account, uint256 amount);
@@ -72,10 +73,9 @@ contract Lotto is LottoTickets, Context {
     /// @return the "random" number, how many tickets created, and the winning
     /// number. This is to create transparency hopefully.
     function calculateWinningTicket() public view returns (uint256) {
-        uint256 yo = currentTicketId();
         uint256 bHash = uint256(blockhash(_endingBlock + _pauseBuffer));
         require(bHash != 0, "wait a few confirmations");
-        return bHash % yo;
+        return bHash % currentTicketId();
     }
 
     function _payout(address account, uint256 amount) internal virtual {

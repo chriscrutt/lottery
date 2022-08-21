@@ -22,6 +22,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 /// subtract before sending funds
 /// see if loop runs out of gas
 /// make sure ALL eth gets sent
+/// is setting `fromBalance` variable worth it
 
 abstract contract ERC80085 is ERC20, ERC20Permit {
     // logs each token transaction to help calculate withdrawable eth rewards
@@ -46,9 +47,6 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
 
     // a mapping of every token holder for easy lookup
     mapping(address => TokenHolder) private _holders;
-
-    // creating token
-    constructor() {}
 
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;

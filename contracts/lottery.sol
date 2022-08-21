@@ -17,6 +17,10 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 /// subtract before sending funds
 /// see if loop runs out of gas
 /// make sure ALL eth gets sent
+/// unchecked has a very minimal effect
+///     consider only using it for loops/recursion
+/// is setting `winningAmount` worth it?
+/// is setting `winningTicket` worth it?
 
 contract LottoRewardsToken is ERC80085 {
     // will be the lottery contract
@@ -64,10 +68,11 @@ contract Lottery is Lotto {
         _beneficiary = payable(_msgSender());
         _invertedFee = 99;
 
-        uint256 value = msg.value / 2;
-        lottoRewardsToken.startStaking();
-        _mintTickets(_msgSender(), value);
-        _mintTickets(_msgSender(), msg.value - value);
+        unchecked {
+            uint256 value = msg.value / 2;
+            _mintTickets(_msgSender(), value);
+            _mintTickets(_msgSender(), msg.value - value);
+        }
     }
 
     /// @dev this updates the placeholder winning info for the current nonce and
@@ -100,17 +105,19 @@ contract Lottery is Lotto {
         uint256 amount,
         uint256 winningTicket
     ) private {
-        uint256 winningAmount = (amount * _invertedFee) / 100;
-        _payout(account, winningAmount);
-        _beneficiary.transfer(address(this).balance / 2);
+        unchecked {
+            uint256 winningAmount = (amount * _invertedFee) / 100;
+            _payout(account, winningAmount);
+            _beneficiary.transfer(address(this).balance / 2);
 
-        _logWinningPlayer(
-            account,
-            winningAmount,
-            address(this).balance,
-            lottoRewardsToken.totalStakedSupply(),
-            winningTicket
-        );
+            _logWinningPlayer(
+                account,
+                winningAmount,
+                address(this).balance,
+                lottoRewardsToken.totalStakedSupply(),
+                winningTicket
+            );
+        }
 
         payable(lottoRewardsToken).transfer(address(this).balance);
 
@@ -126,12 +133,16 @@ contract Lottery is Lotto {
         _payoutAndRestart(winner, address(this).balance, winningTicket);
         uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
 
-        uint256 value = msg.value / 2;
-        _mintTickets(_msgSender(), value);
-        _mintTickets(_msgSender(), msg.value - value);
+        unchecked {
+            uint256 value = msg.value / 2;
+            _mintTickets(_msgSender(), value);
+            _mintTickets(_msgSender(), msg.value - value);
 
-        if (tokensLeft > 0) {
-            lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
+            if (tokensLeft > 99) {
+                lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
+            } else if (tokensLeft > 0) {
+                lottoRewardsToken.transfer(_msgSender(), 1);
+            }
         }
     }
 
@@ -186,9 +197,9 @@ contract Lottery is Lotto {
     }
 
     function withdrawFees() public {
-        uint256 eth = _accumulatedEther(_msgSender());
         payable(_msgSender()).transfer(
-            eth - lottoRewardsToken.holderData(_msgSender()).rewardsWithdrawn
+            _accumulatedEther(_msgSender()) -
+                lottoRewardsToken.holderData(_msgSender()).rewardsWithdrawn
         );
     }
 }
