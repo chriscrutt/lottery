@@ -13,16 +13,21 @@ pragma solidity ^0.8.16;
 /// subtract before sending funds
 /// see if loop runs out of gas
 /// make sure ALL eth gets sent
+/// pretty sure "mid - 1" will never underflow for `_findTicketOwner` because
+///     mid would have to = 0 which would mean high < low which can't happen
+///     because we would have iterated through all numbers by then?
 
 contract LottoTickets {
     // the starting ticket of each bundle purchased
     uint256[] public _bundleFirstTicketNum;
     // checks what bundle was bought by who
-    mapping(uint256 => address) public _bundleBuyer;
+    mapping(uint256 => address)[] public _bundleBuyer;
     // what is the next ticket number to be purchased
     uint256 private _currentTicketId;
 
-    constructor() {}
+    constructor() {
+        _bundleBuyer.push();
+    }
 
     function currentTicketId() public view returns (uint256) {
         return _currentTicketId;
@@ -35,7 +40,7 @@ contract LottoTickets {
         // using `_currentTicketId` as key to look up individual bundles.
         // `end` finalizes amount purchased. it's -1 because buys are inclusive.
         // `player` is simply the person who's bundle of tickets these are.
-        _bundleBuyer[_currentTicketId] = to;
+        _bundleBuyer[0][_currentTicketId] = to;
 
         // push `_currentTicketId` to array as we can loop through and more
         // efficiently see whos tickets are whos when using as it as the key.
@@ -61,10 +66,10 @@ contract LottoTickets {
     //             // 100 !< 0 !< 1 !< 2 < 1000000000000002
     //             if (ticketId < _bundleFirstTicketNum[i]) {
     //                 // return address
-    //                 return _bundleBuyer[_bundleFirstTicketNum[i - 1]];
+    //                 return _bundleBuyer[0][_bundleFirstTicketNum[i - 1]];
     //             }
     //         }
-    //         return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
+    //         return _bundleBuyer[0][_bundleFirstTicketNum[len - 1]];
     //     }
     //     revert();
     // }
@@ -86,14 +91,14 @@ contract LottoTickets {
                     if (ticketId < _bundleFirstTicketNum[mid - 1]) {
                         high = mid - 1;
                     } else if (ticketId >= _bundleFirstTicketNum[mid - 1]) {
-                        return _bundleBuyer[_bundleFirstTicketNum[mid - 1]];
+                        return _bundleBuyer[0][_bundleFirstTicketNum[mid - 1]];
                     }
                 } else if (ticketId == _bundleFirstTicketNum[mid]) {
-                    return _bundleBuyer[_bundleFirstTicketNum[mid]];
+                    return _bundleBuyer[0][_bundleFirstTicketNum[mid]];
                 }
                 mid = (low + high) / 2;
             }
-            return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
+            return _bundleBuyer[0][_bundleFirstTicketNum[len - 1]];
         }
     }
 
@@ -102,10 +107,9 @@ contract LottoTickets {
     }
 
     function _reset() internal virtual {
-        for (uint256 i = 0; i < _bundleFirstTicketNum.length; ++i) {
-            delete _bundleBuyer[_bundleFirstTicketNum[i]];
-        }
+        delete _bundleBuyer;
         delete _bundleFirstTicketNum;
         _currentTicketId = 0;
+        _bundleBuyer.push();
     }
 }
