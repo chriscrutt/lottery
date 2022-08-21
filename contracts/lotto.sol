@@ -11,8 +11,10 @@ import "@openzeppelin/contracts/utils/Context.sol";
 ///     functions
 ///     visibilities
 ///     imports (like math)
-/// enable staking and withdrawing
 /// add comments
+/// subtract before sending funds
+/// see if loop runs out of gas
+/// make sure ALL eth gets sent
 
 contract Lotto is LottoTickets, Context {
     event BuyTickets(address account, uint256 amount);

@@ -9,8 +9,10 @@ pragma solidity ^0.8.16;
 ///     functions
 ///     visibilities
 ///     imports (like math)
-/// enable staking and withdrawing
 /// add comments
+/// subtract before sending funds
+/// see if loop runs out of gas
+/// make sure ALL eth gets sent
 
 contract LottoTickets {
     // the starting ticket of each bundle purchased
@@ -43,27 +45,53 @@ contract LottoTickets {
         _currentTicketId += amount;
     }
 
-    /// @notice finds a ticket's owner
-    /// @param ticketId is the ticket we wish to find who's it is
-    /// @return the address of the ticket owner!
-    function _findTicketOwner(uint256 ticketId)
-        internal
-        view
-        returns (address)
-    {       // 2        100000
-        if (ticketId < _currentTicketId) {
-            // 0, 1, 2, 3 = 4
-            uint256 len = _bundleFirstTicketNum.length;
-            for (uint256 i = 1; i < len; ++i) {
-                // 100 !< 0 !< 1 !< 2 < 1000000000000002
-                if (ticketId < _bundleFirstTicketNum[i]) {
-                    // return address
-                    return _bundleBuyer[_bundleFirstTicketNum[i - 1]];
+    // /// @notice finds a ticket's owner
+    // /// @param ticketId is the ticket we wish to find who's it is
+    // /// @return the address of the ticket owner!
+    // function _findTicketOwner(uint256 ticketId)
+    //     internal
+    //     view
+    //     returns (address)
+    // {
+    //     // 2        100000
+    //     if (ticketId < _currentTicketId) {
+    //         // 0, 1, 2, 3 = 4
+    //         uint256 len = _bundleFirstTicketNum.length;
+    //         for (uint256 i = 1; i < len; ++i) {
+    //             // 100 !< 0 !< 1 !< 2 < 1000000000000002
+    //             if (ticketId < _bundleFirstTicketNum[i]) {
+    //                 // return address
+    //                 return _bundleBuyer[_bundleFirstTicketNum[i - 1]];
+    //             }
+    //         }
+    //         return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
+    //     }
+    //     revert();
+    // }
+
+    function _findTicketOwner(uint256 ticketId) internal view returns (address) {
+        unchecked {
+            uint256 high = _bundleFirstTicketNum.length;
+            uint256 len = high;
+            uint256 low = 1;
+            uint256 mid = (low + high) / 2;
+            while (mid < len) {
+                if (ticketId > _bundleFirstTicketNum[mid]) {
+                    low = mid + 1;
+                } else if (
+                    ticketId < _bundleFirstTicketNum[mid] &&
+                    ticketId > _bundleFirstTicketNum[mid - 1]
+                ) {
+                    return _bundleBuyer[_bundleFirstTicketNum[mid - 1]];
+                } else if (ticketId == _bundleFirstTicketNum[mid]) {
+                    return _bundleBuyer[_bundleFirstTicketNum[mid]];
+                } else {
+                    high = mid - 1;
                 }
+                mid = (low + high) / 2;
             }
             return _bundleBuyer[_bundleFirstTicketNum[len - 1]];
         }
-        revert();
     }
 
     function findTicketOwner(uint256 ticketId) public view returns (address) {

@@ -18,8 +18,10 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 ///     functions
 ///     visibilities
 ///     imports (like math)
-/// enable staking and withdrawing
 /// add comments
+/// subtract before sending funds
+/// see if loop runs out of gas
+/// make sure ALL eth gets sent
 
 abstract contract ERC80085 is ERC20, ERC20Permit {
     // logs each token transaction to help calculate withdrawable eth rewards

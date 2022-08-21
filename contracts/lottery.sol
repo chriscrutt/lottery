@@ -13,8 +13,10 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 ///     functions
 ///     visibilities
 ///     imports (like math)
-/// enable staking and withdrawing
 /// add comments
+/// subtract before sending funds
+/// see if loop runs out of gas
+/// make sure ALL eth gets sent
 
 contract LottoRewardsToken is ERC80085 {
     // will be the lottery contract
