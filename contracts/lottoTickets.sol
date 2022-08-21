@@ -69,7 +69,11 @@ contract LottoTickets {
     //     revert();
     // }
 
-    function _findTicketOwner(uint256 ticketId) internal view returns (address) {
+    function _findTicketOwner(uint256 ticketId)
+        internal
+        view
+        returns (address)
+    {
         unchecked {
             uint256 high = _bundleFirstTicketNum.length;
             uint256 len = high;
@@ -78,15 +82,14 @@ contract LottoTickets {
             while (mid < len) {
                 if (ticketId > _bundleFirstTicketNum[mid]) {
                     low = mid + 1;
-                } else if (
-                    ticketId < _bundleFirstTicketNum[mid] &&
-                    ticketId > _bundleFirstTicketNum[mid - 1]
-                ) {
-                    return _bundleBuyer[_bundleFirstTicketNum[mid - 1]];
+                } else if (ticketId < _bundleFirstTicketNum[mid]) {
+                    if (ticketId < _bundleFirstTicketNum[mid - 1]) {
+                        high = mid - 1;
+                    } else if (ticketId >= _bundleFirstTicketNum[mid - 1]) {
+                        return _bundleBuyer[_bundleFirstTicketNum[mid - 1]];
+                    }
                 } else if (ticketId == _bundleFirstTicketNum[mid]) {
                     return _bundleBuyer[_bundleFirstTicketNum[mid]];
-                } else {
-                    high = mid - 1;
                 }
                 mid = (low + high) / 2;
             }
