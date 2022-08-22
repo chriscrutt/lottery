@@ -67,10 +67,8 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
     /// or contracts with `MINTER_ROLE` and will be used for withdrawing rewards
     /// @param to the lucky sole to get some eth
     /// @param amount the amount of eth to send
-    function _transferWinnings(address to, uint256 amount) internal virtual {
-        unchecked {
-            _holders[to].rewardsWithdrawn += amount;
-        }
+    function _transferEth(address to, uint256 amount) internal virtual {
+        _holders[to].rewardsWithdrawn += amount;
         payable(to).transfer(amount);
     }
 

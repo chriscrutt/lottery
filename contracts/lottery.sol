@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./lotto.sol";
 import "./ERC80085.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// TODO
 /// see cheaper options
@@ -21,26 +21,30 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 ///     consider only using it for loops/recursion
 /// is setting `winningAmount` worth it?
 /// is setting `winningTicket` worth it?
+/// don't have to check for / 0 because tokens are staked at contract creation
 
-contract LottoRewardsToken is ERC80085 {
+contract LottoRewardsToken is ERC80085, Ownable {
     // will be the lottery contract
-
-    address private _creator;
 
     constructor()
         ERC20("Lotto Rewards Token", "LT")
         ERC20Permit("Lotto Rewards Token")
     {
-        _creator = _msgSender();
         _mint(_msgSender(), 21000000 * 10**decimals());
     }
 
-    receive() external payable {
-        require(_msgSender() == _creator, "non-recoverable funds");
-    }
+    receive() external payable onlyOwner {}
 
     function startStaking() public {
         _startStaking(_msgSender());
+    }
+
+    function startStaking(address account) public onlyOwner {
+        _startStaking(account);
+    }
+
+    function transferEth(address to, uint256 amount) public onlyOwner {
+        _transferEth(to, amount);
     }
 }
 
@@ -73,6 +77,8 @@ contract Lottery is Lotto {
             _mintTickets(_msgSender(), value);
             _mintTickets(_msgSender(), msg.value - value);
         }
+
+        lottoRewardsToken.startStaking(_msgSender());
     }
 
     /// @dev this updates the placeholder winning info for the current nonce and
@@ -94,6 +100,10 @@ contract Lottery is Lotto {
                 totalStakedSupply: stakedSupply
             })
         );
+    }
+
+    function startStaking() public {
+        lottoRewardsToken.startStaking(_msgSender());
     }
 
     function winningHistory() public view returns (WinningInfo[] memory) {
@@ -130,24 +140,27 @@ contract Lottery is Lotto {
         require(bHash != 0, "wait a few confirmations");
         uint256 winningTicket = bHash % currentTicketId();
         address winner = _findTicketOwner(winningTicket);
-        _payoutAndRestart(winner, address(this).balance, winningTicket);
-        uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
 
         unchecked {
-            uint256 value = msg.value / 2;
-            _mintTickets(_msgSender(), value);
-            _mintTickets(_msgSender(), msg.value - value);
-
+            uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
             if (tokensLeft > 99) {
                 lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
             } else if (tokensLeft > 0) {
                 lottoRewardsToken.transfer(_msgSender(), 1);
             }
         }
+
+        _payoutAndRestart(winner, address(this).balance, winningTicket);
+
+        unchecked {
+            uint256 value = msg.value / 2;
+            _mintTickets(_msgSender(), value);
+            _mintTickets(_msgSender(), msg.value - value);
+        }
     }
 
     function _accumulatedEther(address account)
-        private
+        public
         view
         returns (uint256 eth)
     {
@@ -156,50 +169,55 @@ contract Lottery is Lotto {
         );
         // handle if length == 0
         uint256 holderLen = holder.transferSnaps.length;
-        for (uint256 i = 0; i < holder.transferSnaps.length; ++i) {
-            for (uint256 j = 0; j < _winningInfo.length; ++j) {
-                if (holder.stakedOnBlock > _winningInfo[j].blockNumber) {
-                    continue;
-                }
-                if (
-                    holder.transferSnaps[i].blockNumber ==
-                    _winningInfo[j].blockNumber
-                ) {
-                    eth += Math.mulDiv(
-                        _winningInfo[j].fees,
-                        holder.transferSnaps[i].snapBalance,
-                        _winningInfo[j].totalStakedSupply
-                    );
-                } else if (
-                    holder.transferSnaps[i].blockNumber <
-                    _winningInfo[j].blockNumber
-                ) {
+        uint256 winningLen = _winningInfo.length;
+
+        unchecked {
+            for (uint256 i = 0; i < holderLen; ++i) {
+                for (uint256 j = 0; j < winningLen; ++j) {
+                    if (holder.stakedOnBlock > _winningInfo[j].blockNumber) {
+                        continue;
+                    }
                     if (
-                        i < holderLen - 1 &&
-                        holder.transferSnaps[i + 1].blockNumber >
+                        holder.transferSnaps[i].blockNumber ==
                         _winningInfo[j].blockNumber
                     ) {
-                        eth += Math.mulDiv(
-                            _winningInfo[j].fees,
-                            holder.transferSnaps[i].snapBalance,
-                            _winningInfo[j].totalStakedSupply
-                        );
+                        eth +=
+                            (_winningInfo[j].fees *
+                                holder.transferSnaps[i].snapBalance) /
+                            _winningInfo[j].totalStakedSupply;
+                    } else if (
+                        holder.transferSnaps[i].blockNumber <
+                        _winningInfo[j].blockNumber
+                    ) {
+                        if (
+                            i < holderLen - 1 &&
+                            holder.transferSnaps[i + 1].blockNumber >
+                            _winningInfo[j].blockNumber
+                        ) {
+                            eth +=
+                                (_winningInfo[j].fees *
+                                    holder.transferSnaps[i].snapBalance) /
+                                _winningInfo[j].totalStakedSupply;
+                        }
+                    } else {
+                        eth +=
+                            (_winningInfo[j].fees *
+                                holder.transferSnaps[i].snapBalance) /
+                            _winningInfo[j].totalStakedSupply;
                     }
-                } else {
-                    eth += Math.mulDiv(
-                        _winningInfo[j].fees,
-                        holder.transferSnaps[i].snapBalance,
-                        _winningInfo[j].totalStakedSupply
-                    );
                 }
             }
         }
     }
 
     function withdrawFees() public {
-        payable(_msgSender()).transfer(
-            _accumulatedEther(_msgSender()) -
-                lottoRewardsToken.holderData(_msgSender()).rewardsWithdrawn
-        );
+        address account = _msgSender();
+        unchecked {
+            lottoRewardsToken.transferEth(
+                account,
+                _accumulatedEther(account) -
+                    lottoRewardsToken.holderData(account).rewardsWithdrawn
+            );
+        }
     }
 }
