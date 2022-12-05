@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./lotto.sol";
-import "./ERC80085.sol";
+import "./ERC80085Upgradeable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// TODO
@@ -23,14 +23,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// is setting `winningTicket` worth it?
 /// don't have to check for / 0 because tokens are staked at contract creation
 
-contract LottoRewardsToken is ERC80085, Ownable {
+contract LottoRewardsToken is ERC80085Upgradeable {
     // will be the lottery contract
 
-    constructor()
-        ERC20("Lotto Rewards Token", "LT")
-        ERC20Permit("Lotto Rewards Token")
-    {
-        _mint(_msgSender(), 21000000 * 10**decimals());
+    function initialize() public initializer {
+        __ERC20_init("Lotto Rewards Token", "LT");
+        __Ownable_init();
+        __UUPSUpgradeable_init();
     }
 
     receive() external payable onlyOwner {}
@@ -164,9 +163,8 @@ contract Lottery is Lotto {
         view
         returns (uint256 eth)
     {
-        ERC80085.TokenHolder memory holder = lottoRewardsToken.holderData(
-            account
-        );
+        ERC80085Upgradeable.TokenHolder memory holder = lottoRewardsToken
+            .holderData(account);
         // handle if length == 0
         uint256 holderLen = holder.transferSnaps.length;
         uint256 winningLen = _winningInfo.length;

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title A "special" ERC20 rewards token
 /// @author Dr. Doofenshmirtz
@@ -24,7 +26,12 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 /// make sure ALL eth gets sent
 /// is setting `fromBalance` variable worth it
 
-abstract contract ERC80085 is ERC20, ERC20Permit {
+abstract contract ERC80085Upgradeable is
+    Initializable,
+    ERC20Upgradeable,
+    OwnableUpgradeable,
+    UUPSUpgradeable
+{
     // logs each token transaction to help calculate withdrawable eth rewards
     struct Snapshot {
         uint256 blockNumber;
@@ -47,6 +54,17 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
 
     // a mapping of every token holder for easy lookup
     mapping(address => TokenHolder) private _holders;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyOwner
+    {}
 
     function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;

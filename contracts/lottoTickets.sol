@@ -35,7 +35,7 @@ contract LottoTickets {
 
     /// @notice updates amount of tickets purchased and by who
     /// @param to the wallet tickets are to be bought for
-    /// @param amount the wallet tickets are to be bought for
+    /// @param amount of tickets that are to be bought
     function _mintTickets(address to, uint256 amount) internal {
         // using `_currentTicketId` as key to look up individual bundles.
         // `end` finalizes amount purchased. it's -1 because buys are inclusive.
