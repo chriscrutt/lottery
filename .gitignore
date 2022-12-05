@@ -3,3 +3,6 @@ package-lock.json
 soljson-v0.8.16+commit.07a7930e.js
 .vscode
 bin
+hardhat.config.js
+contracts/anUpgradeableContract.sol
+soljson-v0.8.17+commit.8df45f5f.js
