@@ -22,6 +22,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// is setting `winningAmount` worth it?
 /// is setting `winningTicket` worth it?
 /// don't have to check for / 0 because tokens are staked at contract creation
+/// runs out of gas as of right now :( (payout and restart does)
 
 contract LottoRewardsToken is ERC80085, Ownable {
     // will be the lottery contract
