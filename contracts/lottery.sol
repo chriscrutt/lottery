@@ -134,21 +134,43 @@ contract Lottery is Lotto {
         _start();
     }
 
+    uint256 private _rewardsTokenInvertedFee = 9999e18;
+
     function payoutAndRestart() public payable {
         require(msg.value >= 2, "need 2 wei initial funding");
         uint256 bHash = uint256(blockhash(endingBlock() + pauseBuffer()));
         require(bHash != 0, "wait a few confirmations");
         uint256 winningTicket = bHash % currentTicketId();
         address winner = _findTicketOwner(winningTicket);
+        uint256 exp = block.timestamp - endingBlock();
+        _rewardsTokenInvertedFee =
+            (_rewardsTokenInvertedFee / 10000e18)**exp *
+            10000e18;
 
-        unchecked {
-            uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
-            if (tokensLeft > 99) {
-                lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
-            } else if (tokensLeft > 0) {
-                lottoRewardsToken.transfer(_msgSender(), 1);
-            }
-        }
+        lottoRewardsToken.transfer(
+            _msgSender(),
+            _rewardsTokenInvertedFee / 10000
+        );
+
+        /*
+>>> 999e18**10/1e180
+9.900448802097483e+29
+>>> 999e18**10/1e183
+9.900448802097483e+26
+>>> 999e18**10/1e189
+9.900448802097483e+20
+>>> 999e18**10/1e191
+9.900448802097482e+18
+        */
+
+        // unchecked {
+        //     uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
+        //     if (tokensLeft > 99) {
+        //         lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
+        //     } else if (tokensLeft > 0) {
+        //         lottoRewardsToken.transfer(_msgSender(), 1);
+        //     }
+        // }
 
         _payoutAndRestart(winner, address(this).balance, winningTicket);
 
