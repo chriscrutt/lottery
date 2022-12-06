@@ -70,7 +70,7 @@ contract Lottery is Lotto {
         lottoRewardsToken = new LottoRewardsToken();
 
         _beneficiary = payable(_msgSender());
-        _invertedFee = 99;
+        _invertedFee = 9999e18;
 
         unchecked {
             uint256 value = msg.value / 2;
@@ -134,7 +134,7 @@ contract Lottery is Lotto {
         _start();
     }
 
-    uint256 private _rewardsTokenInvertedFee = 9999e18;
+    uint256 private _rewardsTokenMultiplier = _invertedFee;
 
     function payoutAndRestart() public payable {
         require(msg.value >= 2, "need 2 wei initial funding");
@@ -143,34 +143,18 @@ contract Lottery is Lotto {
         uint256 winningTicket = bHash % currentTicketId();
         address winner = _findTicketOwner(winningTicket);
         uint256 exp = block.timestamp - endingBlock();
-        _rewardsTokenInvertedFee =
-            (_rewardsTokenInvertedFee / 10000e18)**exp *
-            10000e18;
 
-        lottoRewardsToken.transfer(
-            _msgSender(),
-            _rewardsTokenInvertedFee / 10000
-        );
+        uint256 currentReward = 0;
+        uint256 fee = _rewardsTokenMultiplier;
 
-        /*
->>> 999e18**10/1e180
-9.900448802097483e+29
->>> 999e18**10/1e183
-9.900448802097483e+26
->>> 999e18**10/1e189
-9.900448802097483e+20
->>> 999e18**10/1e191
-9.900448802097482e+18
-        */
+        for (uint256 i = 0; i < exp; ++i) {
+            fee = (fee / 10000e18) * (_invertedFee / 10000e18) * 10000e18;
+            currentReward += fee;
+        }
 
-        // unchecked {
-        //     uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
-        //     if (tokensLeft > 99) {
-        //         lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
-        //     } else if (tokensLeft > 0) {
-        //         lottoRewardsToken.transfer(_msgSender(), 1);
-        //     }
-        // }
+        _rewardsTokenMultiplier = fee;
+
+        lottoRewardsToken.transfer(_msgSender(), currentReward / 10000);
 
         _payoutAndRestart(winner, address(this).balance, winningTicket);
 

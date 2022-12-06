@@ -1,15 +1,24 @@
 from math import floor
 
-rewardsPerSecond = 1e18
-totalCoinsRewarded = 0
-for i in range(7304000):
-    totalCoinsRewarded += rewardsPerSecond
-    print(rewardsPerSecond, totalCoinsRewarded / 1e18, i)
-    rewardsPerSecond *= 0.9999
-    if rewardsPerSecond <= 1:
-        break
+invertedFee = 9999e18
 
-print(rewardsPerSecond, floor(totalCoinsRewarded / 1e18))
+exp = 10
+
+currentReward = 0
+fee = invertedFee
+
+for i in range(exp):
+    print("fee = (fee / 10000e18) * (invertedFee / 10000e18) * 10000e18")
+    print("fee =", fee, "/ 10000e18) * (9999e18 / 10000e18) * 10000e18")
+    print("fee =", fee / 10000e18, "*", 9999e18 / 10000e18, "*", 10000e18)
+    print("fee =", fee / 10000e18, "*", 9999e18 / 10000e18 * 10000e18)
+    print("fee =", fee / 10000e18 * (9999e18 / 10000e18) * 10000e18)
+    fee = (fee / 10000e18) * (invertedFee / 10000e18) * 10000e18
+    currentReward += fee
+    print(fee, currentReward / 1e18)
+invertedFee = fee
+print(invertedFee)
+
 
 
 # tokensLeft = 21000000e18
