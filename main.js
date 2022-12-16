@@ -13,7 +13,7 @@ async function switchChains() {
     try {
         await ethereum.request({
             method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x2a" }],
+            params: [{ chainId: "0x5" }],
         });
     } catch (switchError) {
         // This error code indicates that the chain has not been added to MetaMask.
@@ -23,7 +23,7 @@ async function switchChains() {
                     method: "wallet_addEthereumChain",
                     params: [
                         {
-                            chainId: "0x2a",
+                            chainId: "0x5",
                             chainName: "Kovan Test Network",
                             rpcUrls: ["https://kovan.infura.io/v3/"],
                         },
@@ -38,7 +38,7 @@ async function switchChains() {
 
     await ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x2a" }],
+        params: [{ chainId: "0x5" }],
     });
 }
 
@@ -49,7 +49,7 @@ function colorStuff() {
             document.querySelector("#connect").style.background = "";
             document.querySelector("#connect").innerHTML =
                 "Connect to MetaMask";
-        } else if (ethereum.chainId != "0x2a") {
+        } else if (ethereum.chainId != "0x5") {
             document.querySelector("#connect").innerHTML = "Switch to Kovan";
         } else {
             document.querySelector("#connect").style.background = "lightgreen";
