@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./lotto.sol";
-import "./ERC80085Upgradeable.sol";
+import "./ERC80085.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// TODO
@@ -23,16 +23,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// is setting `winningTicket` worth it?
 /// don't have to check for / 0 because tokens are staked at contract creation
 
-contract LottoRewardsToken is ERC80085Upgradeable {
+contract LottoRewardsToken is ERC80085, Ownable {
     // will be the lottery contract
 
-    function initialize() public initializer {
-        __ERC20_init("Lotto Rewards Token", "LT");
-        __Ownable_init();
-        __UUPSUpgradeable_init();
+    constructor()
+        ERC20("Lotto Rewards Token", "LT")
+        ERC20Permit("Lotto Rewards Token")
+    {
+        _mint(_msgSender(), 21000000 * 10**decimals());
     }
 
-    receive() external payable onlyOwner {}
+    receive() external payable {}
 
     function startStaking() public {
         _startStaking(_msgSender());
@@ -65,7 +66,7 @@ contract Lottery is Lotto {
     WinningInfo[] private _winningInfo;
 
     constructor() payable Lotto(5, 1) {
-        require(msg.value >= 2, "need 2 wei initial funding");
+        require(msg.value >= 200, "need 200 wei initial funding");
         lottoRewardsToken = new LottoRewardsToken();
 
         _beneficiary = payable(_msgSender());
@@ -112,12 +113,13 @@ contract Lottery is Lotto {
     function _payoutAndRestart(
         address account,
         uint256 amount,
+        uint256 initialFunded,
         uint256 winningTicket
     ) private {
         unchecked {
             uint256 winningAmount = (amount * _invertedFee) / 100;
             _payout(account, winningAmount);
-            _beneficiary.transfer(address(this).balance / 2);
+            _beneficiary.transfer((address(this).balance - initialFunded) / 2);
 
             _logWinningPlayer(
                 account,
@@ -128,13 +130,13 @@ contract Lottery is Lotto {
             );
         }
 
-        payable(lottoRewardsToken).transfer(address(this).balance);
+        payable(lottoRewardsToken).transfer(address(this).balance - initialFunded);
 
         _start();
     }
 
     function payoutAndRestart() public payable {
-        require(msg.value >= 2, "need 2 wei initial funding");
+        require(msg.value >= 200, "need 200 wei initial funding");
         uint256 bHash = uint256(blockhash(endingBlock() + pauseBuffer()));
         require(bHash != 0, "wait a few confirmations");
         uint256 winningTicket = bHash % currentTicketId();
@@ -149,7 +151,7 @@ contract Lottery is Lotto {
             }
         }
 
-        _payoutAndRestart(winner, address(this).balance, winningTicket);
+        _payoutAndRestart(winner, address(this).balance, msg.value, winningTicket);
 
         unchecked {
             uint256 value = msg.value / 2;
@@ -163,8 +165,9 @@ contract Lottery is Lotto {
         view
         returns (uint256 eth)
     {
-        ERC80085Upgradeable.TokenHolder memory holder = lottoRewardsToken
-            .holderData(account);
+        ERC80085.TokenHolder memory holder = lottoRewardsToken.holderData(
+            account
+        );
         // handle if length == 0
         uint256 holderLen = holder.transferSnaps.length;
         uint256 winningLen = _winningInfo.length;
