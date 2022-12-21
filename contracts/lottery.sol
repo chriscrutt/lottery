@@ -29,9 +29,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
     constructor()
         ERC20("Lotto Rewards Token", "LT")
         ERC20Permit("Lotto Rewards Token")
-    {
-        _mint(_msgSender(), 21000000 * 10**decimals());
-    }
+    {} // solhint-disable-line no-empty-blocks
 
     receive() external payable {}
 
@@ -65,7 +63,7 @@ contract Lottery is Lotto {
     uint256 private _invertedFee;
     WinningInfo[] private _winningInfo;
 
-    constructor() payable Lotto(5, 1) {
+    constructor() payable Lotto(5) {
         require(msg.value >= 200, "need 200 wei initial funding");
         lottoRewardsToken = new LottoRewardsToken();
 
@@ -77,7 +75,7 @@ contract Lottery is Lotto {
             _mintTickets(_msgSender(), value);
             _mintTickets(_msgSender(), msg.value - value);
         }
-
+        // mint 1 to person
         lottoRewardsToken.startStaking(_msgSender());
     }
 
@@ -130,14 +128,16 @@ contract Lottery is Lotto {
             );
         }
 
-        payable(lottoRewardsToken).transfer(address(this).balance - initialFunded);
+        payable(lottoRewardsToken).transfer(
+            address(this).balance - initialFunded
+        );
 
         _start();
     }
 
     function payoutAndRestart() public payable {
         require(msg.value >= 200, "need 200 wei initial funding");
-        uint256 bHash = uint256(blockhash(endingBlock() + pauseBuffer()));
+        uint256 bHash = uint256(blockhash(endingBlock()));
         require(bHash != 0, "wait a few confirmations");
         uint256 winningTicket = bHash % currentTicketId();
         address winner = _findTicketOwner(winningTicket);
@@ -151,7 +151,12 @@ contract Lottery is Lotto {
             }
         }
 
-        _payoutAndRestart(winner, address(this).balance, msg.value, winningTicket);
+        _payoutAndRestart(
+            winner,
+            address(this).balance,
+            msg.value,
+            winningTicket
+        );
 
         unchecked {
             uint256 value = msg.value / 2;

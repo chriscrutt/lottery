@@ -52,14 +52,22 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         return _totalSupply;
     }
 
-    function balanceOf(address account)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function balanceOf(
+        address account
+    ) public view virtual override returns (uint256) {
         return _holders[account].balance;
+    }
+
+    function holderData(
+        address account
+    ) public view virtual returns (TokenHolder memory) {
+        return _holders[account];
+    }
+
+    /// @dev makes total staked supply accessible from external contracts
+    /// @return shows total staked supply of tokens
+    function totalStakedSupply() public view virtual returns (uint256) {
+        return _totalStakedSupply;
     }
 
     /// @notice transfer out some eth
@@ -77,22 +85,11 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
     function _startStaking(address account) internal virtual {
         _holders[account].stakedOnBlock = block.number;
 
-        _totalStakedSupply += balanceOf(account);
-    }
+        uint256 amount = balanceOf(account);
 
-    function holderData(address account)
-        public
-        view
-        virtual
-        returns (TokenHolder memory)
-    {
-        return _holders[account];
-    }
+        _logTokenTransaction(account, amount);
 
-    /// @dev makes total staked supply accessible from external contracts
-    /// @return shows total staked supply of tokens
-    function totalStakedSupply() public view virtual returns (uint256) {
-        return _totalStakedSupply;
+        _totalStakedSupply += amount;
     }
 
     /// @notice transfers tokens from one person to another
@@ -109,13 +106,13 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         address to,
         uint256 amount
     ) internal virtual override {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
+        require(from != address(0), "transfer from the zero address");
+        require(to != address(0), "transfer to the zero address");
 
         _beforeTokenTransfer(from, to, amount);
 
         uint256 fromBalance = balanceOf(from);
-        require(fromBalance >= amount, "ERC20: send amount exceeds balance");
+        require(fromBalance >= amount, "send amount exceeds balance");
         unchecked {
             _logTokenTransaction(from, fromBalance - amount);
         }
@@ -149,15 +146,23 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         _afterTokenTransfer(address(0), account, amount);
     }
 
+    function _updateWithdrawals(address account, uint256 amount) internal {
+        unchecked {
+            _holders[account].rewardsWithdrawn += amount;
+        }
+    }
+
     /// @notice logs each token transaction
     /// @dev thought it'd be prettier to make a function instead of writing this
     /// out for both `_transfer` and `_mint`. This takes a snapshot of the block
     /// number and new balance for posterity and calculating eth rewards
     /// @param account the person we are logging the transaction for
     function _logTokenTransaction(address account, uint256 amount) private {
-        _holders[account].transferSnaps.push(
-            Snapshot({blockNumber: block.number, snapBalance: amount})
-        );
+        if (_holders[account].stakedOnBlock > 0) {
+            _holders[account].transferSnaps.push(
+                Snapshot({ blockNumber: block.number, snapBalance: amount })
+            );
+        }
         _holders[account].balance = amount;
     }
 
@@ -184,12 +189,6 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
             if (_holders[to].stakedOnBlock > 0) {
                 _totalStakedSupply += amount;
             }
-        }
-    }
-
-    function _updateWithdrawals(address account, uint256 amount) internal {
-        unchecked {
-            _holders[account].rewardsWithdrawn += amount;
         }
     }
 }

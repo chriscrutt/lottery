@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+/// @title LottoTickets
+/// @author The name of the author
+/// @notice The contract that will be interacting with the tickets
+/// @dev allows the minting of tickets, finding a specific ticket holder's address, and resetting
+/// all ticket holdings
+
 /// TODO
+/// Interpolation Search?
 /// see cheaper options
 /// reorder functions
 /// remove unneccessary
@@ -20,65 +27,71 @@ pragma solidity ^0.8.16;
 contract LottoTickets {
     // the starting ticket of each bundle purchased
     uint256[] private _bundleFirstTicketNum;
+
     // checks what bundle was bought by who
     mapping(uint256 => address)[] private _bundleBuyer;
+
     // what is the next ticket number to be purchased
     uint256 private _currentTicketId;
 
+    // tickets were minted/bought
+    event TicketsMinted(address account, uint256 amount);
+
+    /// @dev _bundleBuyer is an array so we can easily delete all maps and thus need to give it a
+    /// length of 1 initiallys
     constructor() {
         _bundleBuyer.push();
     }
 
+    /// @return uint256 gets the ticket ID of the next purchaed ticket
     function currentTicketId() public view returns (uint256) {
         return _currentTicketId;
     }
 
+    /// @notice finding ticket number owner
+    /// @param ticketId of the ticket who's address we are trying to find
+    /// @return address of the person who's ticket we had
+    function findTicketOwner(uint256 ticketId) public view returns (address) {
+        require(ticketId < _currentTicketId, "ticket ID out of bounds");
+        return _findTicketOwner(ticketId);
+    }
+
     /// @notice updates amount of tickets purchased and by who
+    /// @dev first initialized a new bundle using `_currentTicketId` and adds it to an array to
+    /// help loop through the map. Then changes `_currentTicketId` to take into account the `amount`
+    /// that was just minted.
     /// @param to the wallet tickets are to be bought for
     /// @param amount of tickets that are to be bought
     function _mintTickets(address to, uint256 amount) internal {
-        // using `_currentTicketId` as key to look up individual bundles.
-        // `end` finalizes amount purchased. it's -1 because buys are inclusive.
-        // `player` is simply the person who's bundle of tickets these are.
         _bundleBuyer[0][_currentTicketId] = to;
 
-        // push `_currentTicketId` to array as we can loop through and more
-        // efficiently see whos tickets are whos when using as it as the key.
         _bundleFirstTicketNum.push(_currentTicketId);
 
-        // update what ticket number we are on
         _currentTicketId += amount;
+
+        emit TicketsMinted(to, amount);
     }
 
-    // /// @notice finds a ticket's owner
-    // /// @param ticketId is the ticket we wish to find who's it is
-    // /// @return the address of the ticket owner!
-    // function _findTicketOwner(uint256 ticketId)
-    //     internal
-    //     view
-    //     returns (address)
-    // {
-    //     // 2        100000
-    //     if (ticketId < _currentTicketId) {
-    //         // 0, 1, 2, 3 = 4
-    //         uint256 len = _bundleFirstTicketNum.length;
-    //         for (uint256 i = 1; i < len; ++i) {
-    //             // 100 !< 0 !< 1 !< 2 < 1000000000000002
-    //             if (ticketId < _bundleFirstTicketNum[i]) {
-    //                 // return address
-    //                 return _bundleBuyer[0][_bundleFirstTicketNum[i - 1]];
-    //             }
-    //         }
-    //         return _bundleBuyer[0][_bundleFirstTicketNum[len - 1]];
-    //     }
-    //     revert();
-    // }
+    /// @notice deletes all records of tickets and ticket holders
+    function _reset() internal virtual {
+        delete _bundleBuyer;
+        delete _bundleFirstTicketNum;
+        _currentTicketId = 0;
+        _bundleBuyer.push();
+    }
 
-    function _findTicketOwner(uint256 ticketId)
-        internal
-        view
-        returns (address)
-    {
+    /// @notice finds ticket number owner
+    /// @dev uses binary search (as opposed to linear/jump/interpolation).
+    /// "unchecked" as there'd be no way to overflow/underflow/divide by zero (supposedly).
+    /// there's a lot of lingo on the "net", but what I've found is that binary search is well worth
+    /// it even with only a small array length. I've heard interpolation can be better but I'm not
+    /// sure if it would be worth it in solidity because of all the mathematical equations it'd have
+    /// to solve- even if it runs fewer times it might be more gas intensive.
+    /// @param ticketId of the ticket who's address we are trying to find
+    /// @return address of the person who's ticket we had
+    function _findTicketOwner(
+        uint256 ticketId
+    ) internal view returns (address) {
         unchecked {
             uint256 high = _bundleFirstTicketNum.length;
             uint256 len = high;
@@ -100,17 +113,5 @@ contract LottoTickets {
             }
             return _bundleBuyer[0][_bundleFirstTicketNum[len - 1]];
         }
-    }
-
-    function findTicketOwner(uint256 ticketId) public view returns (address) {
-        require(ticketId < _currentTicketId, "ticket ID out of bounds");
-        return _findTicketOwner(ticketId);
-    }
-
-    function _reset() internal virtual {
-        delete _bundleBuyer;
-        delete _bundleFirstTicketNum;
-        _currentTicketId = 0;
-        _bundleBuyer.push();
     }
 }
