@@ -146,6 +146,11 @@ abstract contract ERC80085 is ERC20, ERC20Permit {
         _afterTokenTransfer(address(0), account, amount);
     }
 
+    /**
+     * @dev Updates the `rewardsWithdrawn` value for the specified account.
+     * @param account The account to update.
+     * @param amount The amount to add to the `rewardsWithdrawn` value.
+     */
     function _updateWithdrawals(address account, uint256 amount) internal {
         unchecked {
             _holders[account].rewardsWithdrawn += amount;

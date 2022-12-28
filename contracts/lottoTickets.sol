@@ -89,29 +89,46 @@ contract LottoTickets {
     /// to solve- even if it runs fewer times it might be more gas intensive.
     /// @param ticketId of the ticket who's address we are trying to find
     /// @return address of the person who's ticket we had
+    /**
+     * @dev Finds the owner of a ticket with a given ID.
+     *
+     * @param ticketId The ID of the ticket to find the owner of.
+     * @return The address of the owner of the ticket.
+     */
     function _findTicketOwner(
-        uint256 ticketId
-    ) internal view returns (address) {
+        uint256 ticketId // The ID of the ticket to find the owner of
+    ) public view returns (address) {
+        // The function is marked as internal and view and returns the address of the owner
         unchecked {
-            uint256 high = _bundleFirstTicketNum.length;
-            uint256 len = high;
-            uint256 low = 1;
-            uint256 mid = (low + high) / 2;
+            // The unchecked block is used to disable Solidity's overflow checking for the duration of the block
+            uint256 high = _bundleFirstTicketNum.length; // Initialize high to the length of the _bundleFirstTicketNum array
+            uint256 len = high; // Initialize len to the same value as high
+            uint256 low = 1; // Initialize low to 1
+            uint256 mid = (low + high) >> 1; // Calculate the middle index of the search range as the average of l and h
+            // Enter a while loop that continues as long as mid is less than len
             while (mid < len) {
+                // If ticketId is greater than the value at index mid in _bundleFirstTicketNum
                 if (ticketId > _bundleFirstTicketNum[mid]) {
-                    low = mid + 1;
-                } else if (ticketId < _bundleFirstTicketNum[mid]) {
-                    if (ticketId < _bundleFirstTicketNum[mid - 1]) {
-                        high = mid - 1;
-                    } else if (ticketId >= _bundleFirstTicketNum[mid - 1]) {
-                        return _bundleBuyer[0][_bundleFirstTicketNum[mid - 1]];
-                    }
-                } else if (ticketId == _bundleFirstTicketNum[mid]) {
-                    return _bundleBuyer[0][_bundleFirstTicketNum[mid]];
+                    low = mid + 1; // Set low to mid + 1
                 }
-                mid = (low + high) / 2;
+                // If ticketId is less than the value at index mid in _bundleFirstTicketNum
+                else if (ticketId < _bundleFirstTicketNum[mid]) {
+                    // If ticketId is also less than the value at index mid - 1 in _bundleFirstTicketNum
+                    if (ticketId < _bundleFirstTicketNum[mid - 1]) {
+                        high = mid - 1; // Set high to mid - 1
+                    }
+                    // If ticketId is greater than or equal to the value at index mid - 1 in _bundleFirstTicketNum
+                    else if (ticketId >= _bundleFirstTicketNum[mid - 1]) {
+                        return _bundleBuyer[0][_bundleFirstTicketNum[mid - 1]]; // Return the owner of the ticket with ID _bundleFirstTicketNum[mid - 1]
+                    }
+                }
+                // If ticketId is equal to the value at index mid in _bundleFirstTicketNum
+                else if (ticketId == _bundleFirstTicketNum[mid]) {
+                    return _bundleBuyer[0][_bundleFirstTicketNum[mid]]; // Return the owner of the ticket with ID _bundleFirstTicketNum[mid]
+                }
+                mid = (low + high) / 2; // Calculate the new middle index of the search range
             }
-            return _bundleBuyer[0][_bundleFirstTicketNum[len - 1]];
+            return _bundleBuyer[0][_bundleFirstTicketNum[len - 1]]; // Return the owner of the ticket with ID _bundleFirstTicketNum[len - 1]
         }
     }
 }

@@ -12,13 +12,19 @@
 
 
 
-rewardsPerSecond = 21e18
-totalCoinsRewarded = 0
-for i in range(1000):
-    totalCoinsRewarded += rewardsPerSecond
-    print(rewardsPerSecond, totalCoinsRewarded / 1e18, i)
-    rewardsPerSecond *= 0.999
-    if rewardsPerSecond <= 1:
-        break
+# rewardsPerSecond = 21e18
+# totalCoinsRewarded = 0
+# for i in range(1000):
+#     totalCoinsRewarded += rewardsPerSecond
+#     print(rewardsPerSecond, totalCoinsRewarded / 1e18, i)
+#     rewardsPerSecond *= 0.999
+#     if rewardsPerSecond <= 1:
+#         break
 
-print(rewardsPerSecond, totalCoinsRewarded / 1e18)
+# print(rewardsPerSecond, totalCoinsRewarded / 1e18)
+
+yo = []
+for i in range(0, 401, 2):
+    yo.append(i)
+
+print(yo)

@@ -31,26 +31,62 @@ import "./lottoGratuity.sol";
 import "./ERC80085.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @title LottoRewardsToken
+ * @dev A ERC-20 token that allows users to stake tokens and earn rewards.
+ * @notice Only the contract owner can call certain functions.
+ */
 contract LottoRewardsToken is ERC80085, Ownable {
+    /**
+     * @dev Creates a new instance of the LottoRewardsToken contract with the given name and symbol.
+     * @param name The name of the token.
+     * @param symbol The symbol of the token.
+     */
     constructor(
         string memory name,
         string memory symbol
     ) ERC20(name, symbol) ERC20Permit(name) {} // solhint-disable-line no-empty-blocks
 
+    /**
+     * @dev Allows the contract owner to receive Ether.
+     * @notice This function can only be called by the contract owner.
+     */
     receive() external payable onlyOwner {} // solhint-disable-line no-empty-blocks
 
+    /**
+     * @dev Allows the caller to start staking tokens.
+     */
     function startStaking() public {
         _startStaking(_msgSender());
     }
 
+    /**
+     * @dev Allows the contract owner to start staking tokens for a given account.
+     * @param account The account to start staking tokens for.
+     * @notice This function can only be called by the contract owner. The account must not already be staking tokens.
+     */
     function startStaking(address account) public onlyOwner {
-        _startStaking(account);
+        if (holderData(account).stakedOnBlock == 0) {
+            _startStaking(account);
+        }
     }
 
+    /**
+     * @dev Allows the contract owner to transfer Ether to a given account.
+     * @param to The account to transfer Ether to.
+     * @param amount The amount of Ether to transfer.
+     * @notice This function can only be called by the contract owner.
+     */
     function transferEth(address to, uint256 amount) public onlyOwner {
         _transferEth(to, amount);
     }
 
+    /**
+     * @dev Allows the contract owner to mint new tokens and transfer them to a given account.
+     * @param to The account to transfer the new tokens to.
+     * @param amount The amount of tokens to mint and transfer.
+     * @notice This function can only be called by the contract owner.
+     */
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
@@ -113,23 +149,15 @@ abstract contract LottoDAO is LottoGratuity {
      */
     function withdrawFees() public {
         address account = _msgSender();
-        uint256 len = lottoRewardsToken
-            .holderData(account)
-            .transferSnaps
-            .length;
-        if (len < 19) {
-            lottoRewardsToken.transferEth(
-                account,
-                _accumulatedEtherLinear(account) -
-                    lottoRewardsToken.holderData(account).rewardsWithdrawn
-            );
-        } else {
-            lottoRewardsToken.transferEth(
-                account,
-                _accumulatedEtherBinary(account) -
-                    lottoRewardsToken.holderData(account).rewardsWithdrawn
-            );
-        }
+        // uint256 yo = lottoRewardsToken.holderData(account).rewardsWithdrawn;
+        uint256 eth = _accEth(account) -
+            lottoRewardsToken.holderData(account).rewardsWithdrawn;
+        lottoRewardsToken.holderData(account).rewardsWithdrawn += eth;
+        lottoRewardsToken.transferEth(account, eth);
+    }
+
+    function accumulatedEth(address account) public view returns (uint256) {
+        return _accEth(account);
     }
 
     /**
@@ -189,156 +217,106 @@ abstract contract LottoDAO is LottoGratuity {
         lottoRewardsToken.mint(_msgSender(), tokensToReward);
     }
 
-    /// @notice Calculates the accumulated ether of a given account using binary search
-    /// @param account Address of the account to check
-    /// @return eth Accumulated ether of the given account
-    function _accumulatedEtherBinary(
-        address account
-    ) private view returns (uint eth) {
+    /**
+     * @dev Returns the accumulated Ethereum balance for the specified account.
+     * @param account The account for which the balance is queried.
+     * @return eth accumulated Ethereum balance.
+     */
+    function _accEth(address account) private view returns (uint256 eth) {
         // get person whos accumulated ether we're checking
-        ERC80085.Snapshot[] memory array1 = lottoRewardsToken
+        ERC80085.Snapshot[] memory transactions = lottoRewardsToken
             .holderData(account)
             .transferSnaps;
 
-        // get array of winning information
-        WinningInfoDAO[] memory array2 = _winningHistory;
+        // get array of winning/lottery information
+        WinningInfoDAO[] memory winningHistory = _winningHistory;
+        uint256 len = winningHistory.length;
 
-        // loop through each value in array2
-        for (uint i = 0; i < array2.length; i++) {
-            // initialize low and high indices for binary search in array1
-            uint low = 0;
-            uint high = array1.length - 1;
+        // make special case for first staked?
 
-            // binary search for closest but not greater value in array1
-            while (low <= high) {
-                uint mid = (low + high) / 2;
-                // check if value at mid is equal to current value in array2
-                if (array1[mid].blockNumber == array2[i].blockNumber) {
-                    // exact match found
-                    // add value to eth
-                    eth += array2[i].feeAmount.mulDiv(
-                        array1[mid].snapBalance,
-                        array2[i].totalStakedSupply
-                    );
-                    // exit loop
-                    break;
-                } else if (array1[mid].blockNumber > array2[i].blockNumber) {
-                    // value at mid is greater than current value in array2
-                    // search left of mid
-                    high = mid - 1;
-                } else {
-                    // value at mid is lesser than current value in array2
-                    // search right of mid
-                    low = mid + 1;
-                }
-            }
-            // check if closest but not greater value was not found
-            if (low > high) {
-                // check if value is not between first and last values in array1
-                if (low != 0 || high != array1.length - 1) {
-                    // check if value is after last value in array1
-                    if (high == array1.length - 1) {
-                        // use last value in array1 as closest but not greater value
-                        eth += array2[i].feeAmount.mulDiv(
-                            array1[high].snapBalance,
-                            array2[i].totalStakedSupply
-                        );
-                    } else if (low != 0) {
-                        // value is between first and last values in array1
-                        // find value with smallest difference
-                        if (
-                            array2[i].blockNumber - array1[high].blockNumber <
-                            array1[low].blockNumber - array2[i].blockNumber
-                        ) {
-                            // use value before current value in array1 as closest but not greater
-                            // value
-                            eth += array2[i].feeAmount.mulDiv(
-                                array1[high].snapBalance,
-                                array2[i].totalStakedSupply
-                            );
-                        } else {
-                            // use value after current value in array1 as closest but not greater
-                            // value
-                            eth += array2[i].feeAmount.mulDiv(
-                                array1[low].snapBalance,
-                                array2[i].totalStakedSupply
-                            );
-                        }
-                    }
-                }
-            }
+        // find the index (startingPoint) of the first lottery who's timestamp is after their first transaction
+        uint256 startingPoint = _binarySearchUpExclusive(
+            winningHistory,
+            transactions[0].blockNumber
+        );
+
+        // find the transaction that is closest to the start of that lottery
+        uint256 txNum = _binarySearchDownExclusive(
+            transactions,
+            winningHistory[startingPoint].blockNumber,
+            0
+        );
+
+        // iterate through the lotteries
+        while (startingPoint < len) {
+            txNum = _binarySearchDownExclusive(
+                transactions,
+                winningHistory[startingPoint].blockNumber,
+                txNum
+            );
+
+            // calculate the amount of Ether accumulated during the current lottery
+            eth += winningHistory[startingPoint].feeAmount.mulDiv(
+                transactions[txNum].snapBalance,
+                winningHistory[startingPoint].totalStakedSupply
+            );
+            // move to next lottery
+            ++startingPoint;
         }
     }
 
-    /// @notice Calculates the accumulated ether of a given account using a linear search
-    /// @param account Address of the account to check
-    /// @return eth Accumulated ether of the given account
-    function _accumulatedEtherLinear(
-        address account // address of the account to check
-    ) private view returns (uint eth) {
-        // returns the accumulated ether of the account
-        // get the transfer snapshot data for the given account
-        ERC80085.Snapshot[] memory array1 = lottoRewardsToken
-            .holderData(account)
-            .transferSnaps;
-
-        // get the winning history data for the contract
-        WinningInfoDAO[] memory array2 = _winningHistory;
-
-        // initialize loop variables
-        uint i = 0;
-        uint j = 0;
-
-        // loop through both arrays simultaneously
-        while (i < array1.length && j < array2.length) {
-            // if the block numbers are the same
-            if (array1[i].blockNumber == array2[j].blockNumber) {
-                // increment the accumulated ether by the fee amount multiplied by the snap balance
-                // of the account and divided by the total staked supply
-                eth += array2[j].feeAmount.mulDiv(
-                    array1[i].snapBalance,
-                    array2[j].totalStakedSupply
-                );
-                // move to the next block in both arrays
-                i++;
-                j++;
-            }
-            // if the block number in "array1" is greater than the block number in "array2"
-            else if (array1[i].blockNumber > array2[j].blockNumber) {
-                // if this is not the first block in "array1"
-                if (i != 0) {
-                    // check which snap balance has a smaller difference in block numbers
-                    if (
-                        array2[j].blockNumber - array1[i - 1].blockNumber <
-                        array1[i].blockNumber - array2[j].blockNumber
-                    ) {
-                        // increment the accumulated ether by the fee amount multiplied by the snap
-                        // balance of the previous block in "array1" and divided by the total
-                        // staked supply
-                        eth += array2[j].feeAmount.mulDiv(
-                            array1[i - 1].snapBalance,
-                            array2[j].totalStakedSupply
-                        );
-                    }
-                    // if the current block in "array1" has a smaller difference in block numbers
-                    else {
-                        // increment the accumulated ether by the fee amount multiplied by the snap
-                        // balance of the current lock in "array1" and divided by the total staked
-                        // supply
-                        eth += array2[j].feeAmount.mulDiv(
-                            array1[i].snapBalance,
-                            array2[j].totalStakedSupply
-                        );
-                    }
-                }
-                // move to the next block in "array2"
-                j++;
-            }
-            // if the block number in "array2" is greater than the block number in "array1"
-            else {
-                // move to the next block in "array1"
-                i++;
+    /**
+     * @dev Performs a binary search to find the index of the last element in the array that is
+     * less than the target value.
+     * @param _array The array to search.
+     * @param _target The target value.
+     * @param _low The lower bound of the search range.
+     * @return uint256 index of the last element less than the target value.
+     */
+    function _binarySearchDownExclusive(
+        ERC80085.Snapshot[] memory _array,
+        uint256 _target,
+        uint256 _low
+    ) private pure returns (uint256) {
+        uint256 high = _array.length;
+        require(high > 0, "Array is empty");
+        uint256 low = _low;
+        while (low < high) {
+            uint256 mid = (low + high) >> 1;
+            if (_array[mid].blockNumber >= _target) {
+                high = mid;
+            } else {
+                low = mid + 1;
             }
         }
+        require(low != 0, "target not found in array");
+        return low - 1;
+    }
+
+    /**
+     * @dev Performs a binary search to find the index of the first element in the array that is
+     * greater than the target value.
+     * @param _array The array to search.
+     * @param _target The target value.
+     * @return uint256 index of the first element greater than the target value.
+     */
+    function _binarySearchUpExclusive(
+        WinningInfoDAO[] memory _array,
+        uint256 _target
+    ) private pure returns (uint256) {
+        uint256 high = _array.length;
+        require(high > 0, "array is empty");
+        uint256 low = 0;
+        while (low < high) {
+            uint256 mid = (low + high) >> 1;
+            if (_array[mid].blockNumber <= _target) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        require(low != _array.length, "target not found in array");
+        // Return the index of the number closest but greater than the target number
+        return low;
     }
 }
