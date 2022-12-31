@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
 /// @title A "special" ERC20 rewards token
 /// @author Dr. Doofenshmirtz
@@ -11,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 /// one ends. Token holders are rewarded with fees taken from lottery winners
 /// and may withdraw Ethereum relative to their % makeup of the total supply.
 
-abstract contract ERC80085 is ERC20, ERC20Permit {
+abstract contract ERC80085 is ERC20 {
     // logs each token transaction to help calculate withdrawable eth rewards
     struct Snapshot {
         uint256 blockNumber;

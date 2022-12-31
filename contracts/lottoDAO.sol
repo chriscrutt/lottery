@@ -45,7 +45,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
     constructor(
         string memory name,
         string memory symbol
-    ) ERC20(name, symbol) ERC20Permit(name) {} // solhint-disable-line no-empty-blocks
+    ) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
 
     /**
      * @dev Allows the contract owner to receive Ether.
