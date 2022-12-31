@@ -3,19 +3,6 @@ pragma solidity ^0.8.16;
 import "./lottoTickets.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-/// TODO
-/// see cheaper options
-/// reorder functions
-/// remove unneccessary
-///     variables
-///     functions
-///     visibilities
-///     imports (like math)
-/// add comments
-/// subtract before sending funds
-/// see if loop runs out of gas
-/// make sure ALL eth gets sent
-/// is setting `bHash` worth it?
 
 /**
  * @title Lotto
@@ -62,26 +49,6 @@ contract Lotto is LottoTickets, Context {
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
     }
-
-    // /**
-    //  * @dev Pays out the contract balance to the winner of the current round.
-    //  */
-    // function payout() public virtual {
-    //     // Get the contract balance
-    //     uint256 pot = address(this).balance;
-
-    //     // Revert if the contract balance is less than 1000
-    //     require(pot >= 1000, "pot has to be >= 1000");
-
-    //     // Revert if the current block number is not greater than the ending block number
-    //     require(block.number > _endingBlock, "round not over yet");
-
-    //     // Revert if the round has already been paid out
-    //     require(!_paid, "already paid out");
-
-    //     // Pay out the contract balance to the winner of the current round
-    //     _payout(pot);
-    // }
 
     function addTime() public {
         _addTime();

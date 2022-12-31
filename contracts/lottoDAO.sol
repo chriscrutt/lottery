@@ -63,7 +63,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
     /**
      * @dev Allows the contract owner to start staking tokens for a given account.
      * @param account The account to start staking tokens for.
-     * @notice This function can only be called by the contract owner. The account must not already be staking tokens.
+     * @notice can only be called by the contract owner & not already be staking tokens.
      */
     function startStaking(address account) public onlyOwner {
         if (holderData(account).stakedOnBlock == 0) {
@@ -93,6 +93,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
 }
 
 abstract contract LottoDAO is LottoGratuity {
+    // using BinarySearch for *;
     using Math for uint256;
 
     // will handle each lotto win
@@ -217,6 +218,42 @@ abstract contract LottoDAO is LottoGratuity {
         lottoRewardsToken.mint(_msgSender(), tokensToReward);
     }
 
+    function _safeBinarySearchDownExclusive(
+        ERC80085.Snapshot[] memory _array,
+        uint256 _target,
+        uint256 _low
+    ) internal pure returns (uint256) {
+        require(_array.length > 0, "Array is empty");
+        uint256 result = _binarySearchDownExclusive(_array, _target, _low);
+        require(result != 0xffffffffffffffff, "Target not found in array");
+        return result;
+    }
+
+    function _safeBinarySearchDownExclusive(
+        ERC80085.Snapshot[] memory _array,
+        uint256 _target
+    ) internal pure returns (uint256) {
+        return _safeBinarySearchDownExclusive(_array, _target, 0);
+    }
+
+    function _safeBinarySearchUpExclusive(
+        WinningInfoDAO[] memory _array,
+        uint256 _target,
+        uint256 _low
+    ) internal pure returns (uint256) {
+        require(_array.length > 0, "Array is empty");
+        uint256 result = _binarySearchUpExclusive(_array, _target, _low);
+        require(result != _array.length, "Target not found in array");
+        return result;
+    }
+
+    function _safeBinarySearchUpExclusive(
+        WinningInfoDAO[] memory _array,
+        uint256 _target
+    ) internal pure returns (uint256) {
+        return _safeBinarySearchUpExclusive(_array, _target, 0);
+    }
+
     /**
      * @dev Returns the accumulated Ethereum balance for the specified account.
      * @param account The account for which the balance is queried.
@@ -234,22 +271,21 @@ abstract contract LottoDAO is LottoGratuity {
 
         // make special case for first staked?
 
-        // find the index (startingPoint) of the first lottery who's timestamp is after their first transaction
-        uint256 startingPoint = _binarySearchUpExclusive(
+        // find startingPoint of the first lottery who's timestamp is after their first transaction
+        uint256 startingPoint = _safeBinarySearchUpExclusive(
             winningHistory,
             transactions[0].blockNumber
         );
 
         // find the transaction that is closest to the start of that lottery
-        uint256 txNum = _binarySearchDownExclusive(
+        uint256 txNum = _safeBinarySearchDownExclusive(
             transactions,
-            winningHistory[startingPoint].blockNumber,
-            0
+            winningHistory[startingPoint].blockNumber
         );
 
         // iterate through the lotteries
         while (startingPoint < len) {
-            txNum = _binarySearchDownExclusive(
+            txNum = _safeBinarySearchDownExclusive(
                 transactions,
                 winningHistory[startingPoint].blockNumber,
                 txNum
@@ -265,58 +301,52 @@ abstract contract LottoDAO is LottoGratuity {
         }
     }
 
-    /**
-     * @dev Performs a binary search to find the index of the last element in the array that is
-     * less than the target value.
-     * @param _array The array to search.
-     * @param _target The target value.
-     * @param _low The lower bound of the search range.
-     * @return uint256 index of the last element less than the target value.
-     */
     function _binarySearchDownExclusive(
         ERC80085.Snapshot[] memory _array,
         uint256 _target,
         uint256 _low
     ) private pure returns (uint256) {
-        uint256 high = _array.length;
-        require(high > 0, "Array is empty");
         uint256 low = _low;
-        while (low < high) {
-            uint256 mid = (low + high) >> 1;
-            if (_array[mid].blockNumber >= _target) {
-                high = mid;
-            } else {
-                low = mid + 1;
+        unchecked {
+            uint256 high = _array.length;
+            while (low < high) {
+                uint256 mid = (low + high) / 2;
+                if (_array[mid].blockNumber >= _target) {
+                    high = mid;
+                } else {
+                    low = mid + 1;
+                }
             }
         }
-        require(low != 0, "target not found in array");
-        return low - 1;
+        // Return the index of the number closest but less than the target number
+        // or a special value if the target is not found
+        if (low == 0) {
+            return 0xffffffffffffffff;
+        } else {
+            return low - 1;
+        }
     }
 
-    /**
-     * @dev Performs a binary search to find the index of the first element in the array that is
-     * greater than the target value.
-     * @param _array The array to search.
-     * @param _target The target value.
-     * @return uint256 index of the first element greater than the target value.
-     */
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
     function _binarySearchUpExclusive(
         WinningInfoDAO[] memory _array,
-        uint256 _target
+        uint256 _target,
+        uint256 _low
     ) private pure returns (uint256) {
-        uint256 high = _array.length;
-        require(high > 0, "array is empty");
-        uint256 low = 0;
-        while (low < high) {
-            uint256 mid = (low + high) >> 1;
-            if (_array[mid].blockNumber <= _target) {
-                low = mid + 1;
-            } else {
-                high = mid;
+        unchecked {
+            uint256 low = _low;
+            uint256 high = _array.length;
+            while (low < high) {
+                uint256 mid = (low + high) >> 1;
+                if (_array[mid].blockNumber <= _target) {
+                    low = mid + 1;
+                } else {
+                    high = mid;
+                }
             }
+            // Return the index of the number closest but greater than the target number
+            return low;
         }
-        require(low != _array.length, "target not found in array");
-        // Return the index of the number closest but greater than the target number
-        return low;
     }
 }

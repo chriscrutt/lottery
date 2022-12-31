@@ -174,10 +174,10 @@ const abi = [
     "function symbol() view returns (string)",
 
     // Authenticated Functions
-    "function transfer(address to, uint amount) returns (bool)",
+    "function transfer(address to, uint256 amount) returns (bool)",
 
     // Events
-    "event Transfer(address indexed from, address indexed to, uint amount)",
+    "event Transfer(address indexed from, address indexed to, uint256 amount)",
 ];
 
 function getTokenInfo(write) {

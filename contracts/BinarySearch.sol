@@ -14,20 +14,22 @@ library BinarySearch {
     // }
 
     function _binarySearchDownExclusive(
-        uint[] memory _array,
-        uint _target,
+        uint256[] memory _array,
+        uint256 _target,
         uint256 _low
-    ) private pure returns (uint256) {
-        uint low = _low;
-        uint high = _array.length;
+    ) internal pure returns (uint256) {
+        uint256 low = _low;
+        unchecked {
+            
+        uint256 high = _array.length;
         while (low < high) {
-            uint mid = (low + high) >> 1;
+            uint256 mid = (low + high) / 2;
             if (_array[mid] >= _target) {
                 high = mid;
             } else {
                 low = mid + 1;
             }
-        }
+        }}
         // Return the index of the number closest but less than the target number
         // or a special value if the target is not found
         if (low == 0) {
@@ -38,8 +40,8 @@ library BinarySearch {
     }
 
     function safeBinarySearchDownExclusive(
-        uint[] memory _array,
-        uint _target,
+        uint256[] memory _array,
+        uint256 _target,
         uint256 _low
     ) internal pure returns (uint256) {
         require(_array.length > 0, "Array is empty");
@@ -49,8 +51,8 @@ library BinarySearch {
     }
 
     function safeBinarySearchDownExclusive(
-        uint[] memory _array,
-        uint _target
+        uint256[] memory _array,
+        uint256 _target
     ) internal pure returns (uint256) {
         return safeBinarySearchDownExclusive(_array, _target, 0);
     }
@@ -58,14 +60,17 @@ library BinarySearch {
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function _binarySearchUpExclusive(
-        uint[] memory _array,
-        uint _target,
-        uint _low
-    ) private pure returns (uint256) {
-        uint low = _low;
-        uint high = _array.length;
+        uint256[] memory _array,
+        uint256 _target,
+        uint256 _low
+    ) internal pure returns (uint256) {
+        unchecked {
+            
+        
+        uint256 low = _low;
+        uint256 high = _array.length;
         while (low < high) {
-            uint mid = (low + high) >> 1;
+            uint256 mid = (low + high) / 2;
             if (_array[mid] <= _target) {
                 low = mid + 1;
             } else {
@@ -73,12 +78,12 @@ library BinarySearch {
             }
         }
         // Return the index of the number closest but greater than the target number
-        return low;
+        return low;}
     }
 
     function safeBinarySearchUpExclusive(
-        uint[] memory _array,
-        uint _target,
+        uint256[] memory _array,
+        uint256 _target,
         uint256 _low
     ) internal pure returns (uint256) {
         require(_array.length > 0, "Array is empty");
@@ -88,8 +93,8 @@ library BinarySearch {
     }
 
     function safeBinarySearchUpExclusive(
-        uint[] memory _array,
-        uint _target
+        uint256[] memory _array,
+        uint256 _target
     ) internal pure returns (uint256) {
         return safeBinarySearchUpExclusive(_array, _target, 0);
     }

@@ -41,7 +41,7 @@ contract MyLottery is LottoDAO {
 
     /**
      * @dev Returns the current block number.
-     * @return The current block number.
+     * @return uint256 current block number.
      */
     function currentBlock() public view returns (uint256) {
         return block.number;

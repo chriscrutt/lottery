@@ -10,19 +10,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 /// @dev Tokens are earned by helping (re)start the lottery after the previous
 /// one ends. Token holders are rewarded with fees taken from lottery winners
 /// and may withdraw Ethereum relative to their % makeup of the total supply.
-/// TODO
-/// see cheaper options
-/// reorder functions
-/// remove unneccessary
-///     variables
-///     functions
-///     visibilities
-///     imports (like math)
-/// add comments
-/// subtract before sending funds
-/// see if loop runs out of gas
-/// make sure ALL eth gets sent
-/// is setting `fromBalance` variable worth it
 
 abstract contract ERC80085 is ERC20, ERC20Permit {
     // logs each token transaction to help calculate withdrawable eth rewards
