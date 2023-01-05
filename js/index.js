@@ -159,7 +159,7 @@ function startUpdating() {
                     Math.abs(dif) * 12.06
                 );
                 if (dif <= 0) {
-                    document.querySelector("#timeLeft").innerHTML = "time passed";
+                    document.querySelector("#time").innerHTML = "time passed";
                     if (bal < 1000) {
                         document.querySelector("#add").style.color =
                             "mediumseagreen";
@@ -174,7 +174,7 @@ function startUpdating() {
                         document.querySelector("#add").style.cssText = "";
                     }
                 } else {
-                    document.querySelector("#timeLeft").innerHTML = "time left";
+                    document.querySelector("#time").innerHTML = "time left";
                 }
             });
         });
