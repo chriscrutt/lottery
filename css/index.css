@@ -45,7 +45,7 @@ form {
 
 .section {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     flex-wrap: nowrap;
     flex-direction: row;
     justify-content: space-evenly;
