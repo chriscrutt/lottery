@@ -56,6 +56,14 @@ abstract contract ERC80085 is ERC20 {
         return _totalStakedSupply;
     }
 
+    function isStaking(address account) public view virtual returns (bool) {
+        return (_holders[account].stakedOnBlock > 0);
+    }
+
+    function isStaking() public view virtual returns (bool) {
+        return isStaking(msg.sender);
+    }
+
     /// @notice transfer out some eth
     /// @dev this function makes transfering eth accessible to external people
     /// or contracts with `MINTER_ROLE` and will be used for withdrawing rewards

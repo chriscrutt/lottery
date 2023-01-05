@@ -104,7 +104,7 @@ abstract contract LottoGratuity is Lotto {
         uint256 gratuity
     ) internal virtual {
         Beneficiary memory tmpBene = beneficiaryGratuity()[beneficiaryNumber];
-        require(tmpBene.beneficiary == _msgSender(), "only current can swap");
+        require(tmpBene.beneficiary == msg.sender, "only current can swap");
         require(beneficiary != address(0), "must not be 0 address");
         uint256 tmpGratuitiesSum = _gratuitiesSum - tmpBene.gratuity + gratuity;
         require(tmpGratuitiesSum < 1000, "sum of gratuities is >= 1000");

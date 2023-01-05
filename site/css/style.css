@@ -10369,9 +10369,8 @@ h2.title-modern > span {
 *FF931E
 * Page layout
 */
-.page {
+body {
 	position: relative;
-	overflow: hidden;
 	min-height: 100vh;
 	text-align: center;
 
@@ -12432,6 +12431,36 @@ html.tablet .ui-to-top {
 	.ui-to-top {
 		right: 12px;
 	}
+}
+
+.outtie {
+	position: fixed;
+	left: 0;
+	right: 0;
+	z-index: 1030;
+	display: block;
+}
+
+.middie {
+	padding-left: 3%;
+    padding-right: 3%;
+    background-color: #151515;
+}
+
+.innie {
+	padding: 11px 55px 11px 0;
+	display: flex;
+	justify-content: space-between;
+}
+
+.elements {
+	color: white;
+	position: relative;
+    display: inline-block;
+    font-size: 16px;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: 0;
 }
 
 /*

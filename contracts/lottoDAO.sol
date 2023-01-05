@@ -42,10 +42,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
      * @param name The name of the token.
      * @param symbol The symbol of the token.
      */
-    constructor(
-        string memory name,
-        string memory symbol
-    ) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
 
     /**
      * @dev Allows the contract owner to receive Ether.
@@ -57,7 +54,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
      * @dev Allows the caller to start staking tokens.
      */
     function startStaking() public {
-        _startStaking(_msgSender());
+        _startStaking(msg.sender);
     }
 
     /**
@@ -66,7 +63,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
      * @notice can only be called by the contract owner & not already be staking tokens.
      */
     function startStaking(address account) public onlyOwner {
-        if (holderData(account).stakedOnBlock == 0) {
+        if (!isStaking(account)) {
             _startStaking(account);
         }
     }
@@ -100,6 +97,7 @@ abstract contract LottoDAO is LottoGratuity {
     struct WinningInfoDAO {
         address winner;
         uint256 winningAmount;
+        uint256 ticket;
         uint256 blockNumber;
         uint256 feeAmount;
         uint256 totalStakedSupply;
@@ -125,7 +123,7 @@ abstract contract LottoDAO is LottoGratuity {
         string memory rewardTokenSymbol_,
         uint8 maxBeneficiaries,
         uint256 daoGratuity_
-    ) LottoGratuity(maxBeneficiaries, _msgSender(), 0) {
+    ) LottoGratuity(maxBeneficiaries, msg.sender, 0) {
         lottoRewardsToken = new LottoRewardsToken(
             rewardTokenName_,
             rewardTokenSymbol_
@@ -133,15 +131,23 @@ abstract contract LottoDAO is LottoGratuity {
         _rewardsPerBlock = 21e18;
         _daoGratuity = daoGratuity_;
         _swapBeneficiary(0, address(lottoRewardsToken), daoGratuity_);
-        lottoRewardsToken.mint(_msgSender(), 1);
-        startStaking();
+        lottoRewardsToken.mint(msg.sender, 1);
     }
 
     /**
      * @dev Allows the caller to start staking tokens.
      */
     function startStaking() public {
-        lottoRewardsToken.startStaking(_msgSender());
+        lottoRewardsToken.startStaking(msg.sender);
+    }
+
+    function isStaking() public view returns (bool) {
+        return lottoRewardsToken.isStaking(msg.sender);
+    }
+
+    function lastWinner() public view override returns (address, uint256, uint256) {
+        WinningInfoDAO memory win = _winningHistory[_winningHistory.length - 1];
+        return (win.winner, win.winningAmount, win.ticket);
     }
 
     /**
@@ -149,7 +155,7 @@ abstract contract LottoDAO is LottoGratuity {
      * search depending on the length of the caller's transfer history.
      */
     function withdrawFees() public {
-        address account = _msgSender();
+        address account = msg.sender;
         // uint256 yo = lottoRewardsToken.holderData(account).rewardsWithdrawn;
         uint256 eth = _accEth(account) -
             lottoRewardsToken.holderData(account).rewardsWithdrawn;
@@ -159,6 +165,16 @@ abstract contract LottoDAO is LottoGratuity {
 
     function accumulatedEth(address account) public view returns (uint256) {
         return _accEth(account);
+    }
+
+    function availableEth(address account) public view returns (uint256) {
+        return
+            _accEth(account) -
+            lottoRewardsToken.holderData(account).rewardsWithdrawn;
+    }
+
+    function availableEth() public view returns (uint256) {
+        return availableEth(msg.sender);
     }
 
     /**
@@ -177,14 +193,15 @@ abstract contract LottoDAO is LottoGratuity {
      */
     function _logWinningPlayer(
         address account,
-        uint256 winnings
+        uint256 winnings,
+        uint256 ticketId
     ) internal virtual override {
         _winningHistory.push(
             WinningInfoDAO({
                 winner: account,
                 winningAmount: winnings,
+                ticket: ticketId,
                 blockNumber: endingBlock(),
-                // feeAmount: (_lastPot * _daoGratuity) / 1000,
                 feeAmount: _lastPot.mulDiv(_daoGratuity, 1000),
                 totalStakedSupply: lottoRewardsToken.totalStakedSupply()
             })
@@ -215,7 +232,7 @@ abstract contract LottoDAO is LottoGratuity {
         }
 
         _rewardsPerBlock = tmpRewardsPerBlock;
-        lottoRewardsToken.mint(_msgSender(), tokensToReward);
+        lottoRewardsToken.mint(msg.sender, tokensToReward);
     }
 
     function _safeBinarySearchDownExclusive(

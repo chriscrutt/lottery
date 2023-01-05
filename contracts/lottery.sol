@@ -34,7 +34,7 @@ contract LottoRewardsToken is ERC80085, Ownable {
     receive() external payable {}
 
     function startStaking() public {
-        _startStaking(_msgSender());
+        _startStaking(msg.sender);
     }
 
     function startStaking(address account) public onlyOwner {
@@ -67,16 +67,16 @@ contract Lottery is Lotto {
         require(msg.value >= 200, "need 200 wei initial funding");
         lottoRewardsToken = new LottoRewardsToken();
 
-        _beneficiary = payable(_msgSender());
+        _beneficiary = payable(msg.sender);
         _invertedFee = 99;
 
         unchecked {
             uint256 value = msg.value / 2;
-            _mintTickets(_msgSender(), value);
-            _mintTickets(_msgSender(), msg.value - value);
+            _mintTickets(msg.sender, value);
+            _mintTickets(msg.sender, msg.value - value);
         }
         // mint 1 to person
-        lottoRewardsToken.startStaking(_msgSender());
+        lottoRewardsToken.startStaking(msg.sender);
     }
 
     /// @dev this updates the placeholder winning info for the current nonce and
@@ -101,7 +101,7 @@ contract Lottery is Lotto {
     }
 
     function startStaking() public {
-        lottoRewardsToken.startStaking(_msgSender());
+        lottoRewardsToken.startStaking(msg.sender);
     }
 
     function winningHistory() public view returns (WinningInfo[] memory) {
@@ -145,9 +145,9 @@ contract Lottery is Lotto {
         unchecked {
             uint256 tokensLeft = lottoRewardsToken.balanceOf(address(this));
             if (tokensLeft > 99) {
-                lottoRewardsToken.transfer(_msgSender(), tokensLeft / 100);
+                lottoRewardsToken.transfer(msg.sender, tokensLeft / 100);
             } else if (tokensLeft > 0) {
-                lottoRewardsToken.transfer(_msgSender(), 1);
+                lottoRewardsToken.transfer(msg.sender, 1);
             }
         }
 
@@ -160,8 +160,8 @@ contract Lottery is Lotto {
 
         unchecked {
             uint256 value = msg.value / 2;
-            _mintTickets(_msgSender(), value);
-            _mintTickets(_msgSender(), msg.value - value);
+            _mintTickets(msg.sender, value);
+            _mintTickets(msg.sender, msg.value - value);
         }
     }
 
@@ -217,7 +217,7 @@ contract Lottery is Lotto {
     }
 
     function withdrawFees() public {
-        address account = _msgSender();
+        address account = msg.sender;
         unchecked {
             lottoRewardsToken.transferEth(
                 account,

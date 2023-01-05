@@ -15,7 +15,8 @@ contract MyLottery is LottoDAO {
      * @dev Creates a new instance of the MyLottery contract.
      */
     constructor() Lotto(5) LottoDAO("Lottery Reward Token", "LRT", 2, 10) {
-        _addBeneficiary(_msgSender(), 10);
+        _addBeneficiary(msg.sender, 10);
+        startStaking();
     }
 
     /**

@@ -95,12 +95,25 @@ async function switchChains() {
 ////////////////////////////////////////////////////////////////////////////////
 
 function convert() {
-    document.querySelector("#ticketAmount").value = document.querySelector("#ticketAmount").value.replace(/\D/g,'');
+    document.querySelector("#ticketAmount").value = document
+        .querySelector("#ticketAmount")
+        .value.replace(/\D/g, "");
     if (document.querySelector("#ticketAmount").value == "NaN") {
         document.querySelector("#ticketAmount").value = 0;
     }
-    document.querySelector("#buyToEth").innerHTML = "Ξ " + ethers.utils.formatEther(document.querySelector("#ticketAmount").value);
-    document.querySelector("#buyToUsd").innerHTML = "$ " + Math.round(ethers.utils.formatEther(document.querySelector("#ticketAmount").value) * ethPrice * 1e6) / 1e6;
+    document.querySelector("#buyToEth").innerHTML =
+        "Ξ " +
+        ethers.utils.formatEther(document.querySelector("#ticketAmount").value);
+    document.querySelector("#buyToUsd").innerHTML =
+        "$ " +
+        Math.round(
+            ethers.utils.formatEther(
+                document.querySelector("#ticketAmount").value
+            ) *
+                ethPrice *
+                1e6
+        ) /
+            1e6;
 }
 
 function secondsToHms(d) {
@@ -119,18 +132,19 @@ function startUpdating() {
     if (window.document.hasFocus()) {
         // ethPrice.getRateToEth("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", true).then((rate) => {
         ethPriceChain.latestAnswer().then((rate) => {
-            ethPrice = Math.round(1e18 / rate * 100) / 100;
+            ethPrice = Math.round((1e18 / rate) * 100) / 100;
             provider
                 .getBalance("0x4828bf2835ccDDBb371adc15ed7a00c2b86CC69A")
                 .then((bal) => {
                     document.querySelector("#ethPot").innerHTML =
                         ethers.utils.formatEther(bal);
-                    document.querySelector("#usdPot").innerHTML = "≈ $" +
-                        Math.round(ethPrice * bal * 100) / 100;
+                    document.querySelector("#usdPot").innerHTML =
+                        "≈ $" + Math.round(ethPrice * bal * 100) / 100;
                 });
             lotto.allTimeWinnings().then((win) => {
                 let winne = ethers.utils.formatEther(win);
-                document.querySelector("#ethAllTime").innerHTML = "Ξ " + Math.round(winne * 100000) / 100000;
+                document.querySelector("#ethAllTime").innerHTML =
+                    "Ξ " + Math.round(winne * 100000) / 100000;
                 document.querySelector("#usdAllTime").innerHTML =
                     "$ " + Math.round(ethPrice * winne * 100) / 100;
             });
@@ -155,21 +169,22 @@ function startUpdating() {
 // must include any fragment we wish to use
 const abi = [
     // Read-Only Functions
-    "function accumulatedEther(address account) view returns (uint256)",
+    "function accumulatedEth(address account) view returns (uint256)",
     "function allTimeWinnings() view returns (uint256)",
-    "function areRewardsEnabled(address account) view returns (bool)",
+    "function isStaking(address account) view returns (bool)",
     "function endingBlock() view returns (uint256)",
-    "function ethAvailable(address account) view returns (uint256)",
+    "function availableEth(address account) view returns (uint256)",
 
     // Authenticated Functions
     "function buyTickets() payable",
-    "function enableRewards()",
-    "function payout()",
-    "function start()",
-    "function withdraw(address account)",
+    "function startStaking()",
+    "function payoutAndRestart()",
+    "function withdrawFees()",
 
     // Events
     "event Payout(address winner, uint256 id, uint256 value)",
+    "event TicketsBought(address account, uint256 amount)"
+
 ];
 
 function getLottoInfo(write) {

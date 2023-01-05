@@ -18,7 +18,7 @@ contract LottoTickets {
     uint256 private _currentTicketId;
 
     // tickets were minted/bought
-    event TicketsMinted(address account, uint256 amount);
+    event TicketsBought(address account, uint256 amount);
 
     /// @dev _bundleBuyer is an array so we can easily delete all maps and thus need to give it a
     /// length of 1 initiallys
@@ -42,7 +42,7 @@ contract LottoTickets {
     /// @notice updates amount of tickets purchased and by who
     /// @dev first initialized a new bundle using `_currentTicketId` and adds it to an array to
     /// help loop through the map. Then changes `_currentTicketId` to take into account the `amount`
-    /// that was just minted.
+    /// that were just bought.
     /// @param to the wallet tickets are to be bought for
     /// @param amount of tickets that are to be bought
     function _mintTickets(address to, uint256 amount) internal {
@@ -52,7 +52,7 @@ contract LottoTickets {
 
         _currentTicketId += amount;
 
-        emit TicketsMinted(to, amount);
+        emit TicketsBought(to, amount);
     }
 
     /// @notice deletes all records of tickets and ticket holders

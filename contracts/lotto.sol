@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 import "./lottoTickets.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-
 /**
  * @title Lotto
  * @dev Lotto contract that allows users to purchase tickets and participate in a lottery.
@@ -16,6 +15,7 @@ contract Lotto is LottoTickets, Context {
     struct WinningInfo {
         address winner;
         uint256 winningAmount;
+        uint256 winningTicket;
     }
 
     // the block the lottery will be ending on
@@ -27,11 +27,11 @@ contract Lotto is LottoTickets, Context {
     // how long the lottery should last
     uint256 private _blocksToWait;
 
-    address private _lastWinner;
-
     WinningInfo[] private _winningHistory;
 
-    event Payout(address account, uint256 amount);
+    uint256 private _allTimeWinnings;
+
+    event Payout(address account, uint256 winnings, uint256 ticket);
 
     /// @notice sets up lottery configuration
     /// @dev starts lottery technically immediately except `_paid` is false not true
@@ -47,11 +47,15 @@ contract Lotto is LottoTickets, Context {
     function buyTickets() public payable virtual {
         require(block.number <= _endingBlock, "passed deadline");
         require(msg.value > 0, "gotta pay to play");
-        _mintTickets(_msgSender(), msg.value);
+        _mintTickets(msg.sender, msg.value);
     }
 
     function addTime() public {
         _addTime();
+    }
+
+    function allTimeWinnings() public view returns (uint256) {
+        return _allTimeWinnings;
     }
 
     /// @notice the block the lottery ends on
@@ -63,8 +67,9 @@ contract Lotto is LottoTickets, Context {
         return _paid;
     }
 
-    function lastWinner() public view returns (address) {
-        return _lastWinner;
+    function lastWinner() public view virtual returns (address, uint256, uint256) {
+        WinningInfo memory win = _winningHistory[_winningHistory.length - 1];
+        return (win.winner, win.winningAmount, win.winningTicket);
     }
 
     /// @dev starts the lottery timer enabling purchases of ticket bundles.
@@ -85,10 +90,15 @@ contract Lotto is LottoTickets, Context {
     /// sets it to... the winning info
     function _logWinningPlayer(
         address account,
-        uint256 winnings
+        uint256 winnings,
+        uint256 ticket
     ) internal virtual {
         _winningHistory.push(
-            WinningInfo({ winner: account, winningAmount: winnings })
+            WinningInfo({
+                winner: account,
+                winningAmount: winnings,
+                winningTicket: ticket
+            })
         );
     }
 
@@ -103,8 +113,7 @@ contract Lotto is LottoTickets, Context {
         // Get the owner of the winning ticket
         address roundWinner = findTicketOwner(winningTicket);
 
-        // Store the winner in the contract storage
-        _lastWinner = roundWinner;
+        _allTimeWinnings += amount;
 
         // Reset the contract state
         _reset();
@@ -113,13 +122,13 @@ contract Lotto is LottoTickets, Context {
         _paid = true;
 
         // Log the winning player and payout amount
-        _logWinningPlayer(roundWinner, amount);
+        _logWinningPlayer(roundWinner, amount, winningTicket);
 
         // Transfer the payout amount to the winner
         payable(roundWinner).transfer(amount);
 
         // Emit the Payout event
-        emit Payout(roundWinner, amount);
+        emit Payout(roundWinner, amount, winningTicket);
     }
 
     /**
@@ -166,10 +175,10 @@ contract Lotto is LottoTickets, Context {
                 keccak256(
                     abi.encodePacked(
                         bHash,
-                        currentTicketId(),
+                        currentTicketId() /*,
                         block.timestamp, // solhint-disable-line not-rely-on-time
                         block.basefee,
-                        gasleft()
+                        gasleft()*/
                     )
                 )
             ) %
