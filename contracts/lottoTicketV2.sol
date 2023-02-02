@@ -24,6 +24,8 @@ contract LottoTicketsV2 {
 
     uint256 private _roundNumber;
 
+    event TicketsMinted(address to, uint256 amount);
+
     constructor() {
         _ticketBundles.push();
     }
@@ -39,6 +41,7 @@ contract LottoTicketsV2 {
             _playerInfo[to].currentTickets = amount;
             _playerInfo[to].mostRecentRound = _roundNumber;
         }
+        emit TicketsMinted(to, amount);
     }
 
     function _playerStats(address player) internal view virtual returns (uint256, uint256, uint256) {
