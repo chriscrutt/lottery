@@ -124,10 +124,7 @@ abstract contract LottoDAO is LottoGratuity {
         uint8 maxBeneficiaries,
         uint256 daoGratuity_
     ) LottoGratuity(maxBeneficiaries, msg.sender, 0) {
-        lottoRewardsToken = new LottoRewardsToken(
-            rewardTokenName_,
-            rewardTokenSymbol_
-        );
+        lottoRewardsToken = new LottoRewardsToken(rewardTokenName_, rewardTokenSymbol_);
         _rewardsPerBlock = 21e18;
         _daoGratuity = daoGratuity_;
         _swapBeneficiary(0, address(lottoRewardsToken), daoGratuity_);
@@ -157,8 +154,7 @@ abstract contract LottoDAO is LottoGratuity {
     function withdrawFees() public {
         address account = msg.sender;
         // uint256 yo = lottoRewardsToken.holderData(account).rewardsWithdrawn;
-        uint256 eth = _accEth(account) -
-            lottoRewardsToken.holderData(account).rewardsWithdrawn;
+        uint256 eth = _accEth(account) - lottoRewardsToken.holderData(account).rewardsWithdrawn;
         lottoRewardsToken.holderData(account).rewardsWithdrawn += eth;
         lottoRewardsToken.transferEth(account, eth);
     }
@@ -168,9 +164,7 @@ abstract contract LottoDAO is LottoGratuity {
     }
 
     function availableEth(address account) public view returns (uint256) {
-        return
-            _accEth(account) -
-            lottoRewardsToken.holderData(account).rewardsWithdrawn;
+        return _accEth(account) - lottoRewardsToken.holderData(account).rewardsWithdrawn;
     }
 
     function availableEth() public view returns (uint256) {
@@ -191,11 +185,7 @@ abstract contract LottoDAO is LottoGratuity {
      * @param account The address of the winning player.
      * @param winnings The amount won by the player.
      */
-    function _logWinningPlayer(
-        address account,
-        uint256 winnings,
-        uint256 ticketId
-    ) internal virtual override {
+    function _logWinningPlayer(address account, uint256 winnings, uint256 ticketId) internal virtual override {
         _winningHistory.push(
             WinningInfoDAO({
                 winner: account,
@@ -216,19 +206,14 @@ abstract contract LottoDAO is LottoGratuity {
     function _start() internal virtual override {
         super._start();
 
-        uint256 blockDif = block.number -
-            _winningHistory[_winningHistory.length - 1].blockNumber;
+        uint256 blockDif = block.number - _winningHistory[_winningHistory.length - 1].blockNumber;
 
         uint256 tokensToReward = 0;
         uint256 tmpRewardsPerBlock = _rewardsPerBlock;
 
         for (uint256 i = 0; i < blockDif; ++i) {
             tokensToReward += tmpRewardsPerBlock;
-            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(
-                999,
-                1000,
-                Math.Rounding.Up
-            );
+            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(999, 1000, Math.Rounding.Up);
         }
 
         _rewardsPerBlock = tmpRewardsPerBlock;
@@ -278,9 +263,7 @@ abstract contract LottoDAO is LottoGratuity {
      */
     function _accEth(address account) private view returns (uint256 eth) {
         // get person whos accumulated ether we're checking
-        ERC80085.Snapshot[] memory transactions = lottoRewardsToken
-            .holderData(account)
-            .transferSnaps;
+        ERC80085.Snapshot[] memory transactions = lottoRewardsToken.holderData(account).transferSnaps;
 
         // get array of winning/lottery information
         WinningInfoDAO[] memory winningHistory = _winningHistory;
@@ -289,24 +272,14 @@ abstract contract LottoDAO is LottoGratuity {
         // make special case for first staked?
 
         // find startingPoint of the first lottery who's timestamp is after their first transaction
-        uint256 startingPoint = _safeBinarySearchUpExclusive(
-            winningHistory,
-            transactions[0].blockNumber
-        );
+        uint256 startingPoint = _safeBinarySearchUpExclusive(winningHistory, transactions[0].blockNumber);
 
         // find the transaction that is closest to the start of that lottery
-        uint256 txNum = _safeBinarySearchDownExclusive(
-            transactions,
-            winningHistory[startingPoint].blockNumber
-        );
+        uint256 txNum = _safeBinarySearchDownExclusive(transactions, winningHistory[startingPoint].blockNumber);
 
         // iterate through the lotteries
         while (startingPoint < len) {
-            txNum = _safeBinarySearchDownExclusive(
-                transactions,
-                winningHistory[startingPoint].blockNumber,
-                txNum
-            );
+            txNum = _safeBinarySearchDownExclusive(transactions, winningHistory[startingPoint].blockNumber, txNum);
 
             // calculate the amount of Ether accumulated during the current lottery
             eth += winningHistory[startingPoint].feeAmount.mulDiv(

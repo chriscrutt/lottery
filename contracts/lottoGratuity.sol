@@ -31,11 +31,7 @@ abstract contract LottoGratuity is Lotto {
      * @param beneficiary The first beneficiary to be added.
      * @param gratuity The gratuity percentage for the first beneficiary.
      */
-    constructor(
-        uint8 maxBeneficiaries_,
-        address beneficiary,
-        uint256 gratuity
-    ) {
+    constructor(uint8 maxBeneficiaries_, address beneficiary, uint256 gratuity) {
         require(maxBeneficiaries_ > 0, "need to be more than 1 bene");
         _maxBeneficiaries = maxBeneficiaries_;
         if (beneficiary != address(0)) {
@@ -49,11 +45,7 @@ abstract contract LottoGratuity is Lotto {
      * @param beneficiary The new beneficiary address.
      * @param gratuity The gratuity to be paid to the new beneficiary.
      */
-    function swapBeneficiary(
-        uint256 beneficiaryNumber,
-        address beneficiary,
-        uint256 gratuity
-    ) public virtual {
+    function swapBeneficiary(uint256 beneficiaryNumber, address beneficiary, uint256 gratuity) public virtual {
         _swapBeneficiary(beneficiaryNumber, beneficiary, gratuity);
     }
 
@@ -73,10 +65,7 @@ abstract contract LottoGratuity is Lotto {
      * revert if the maximum number of beneficiaries has already been reached or if the gratuity
      * sum would exceed 1000.
      */
-    function _addBeneficiary(
-        address beneficiary,
-        uint256 gratuity
-    ) internal virtual {
+    function _addBeneficiary(address beneficiary, uint256 gratuity) internal virtual {
         require(_maxBeneficiaries != 0, "max beneficiaries added");
         require(beneficiary != address(0), "cant be 0 address");
         uint256 tmpGratutiesSum = _gratuitiesSum + gratuity;
@@ -84,9 +73,7 @@ abstract contract LottoGratuity is Lotto {
         _gratuitiesSum = tmpGratutiesSum;
         _maxBeneficiaries--;
 
-        _beneficiaries.push(
-            Beneficiary({ beneficiary: beneficiary, gratuity: gratuity })
-        );
+        _beneficiaries.push(Beneficiary({ beneficiary: beneficiary, gratuity: gratuity }));
     }
 
     /**
@@ -98,11 +85,7 @@ abstract contract LottoGratuity is Lotto {
      * the caller is the current beneficiary, and that the new beneficiary is not the zero address.
      * It also requires that the sum of the gratuities does not exceed 1000.
      */
-    function _swapBeneficiary(
-        uint256 beneficiaryNumber,
-        address beneficiary,
-        uint256 gratuity
-    ) internal virtual {
+    function _swapBeneficiary(uint256 beneficiaryNumber, address beneficiary, uint256 gratuity) internal virtual {
         Beneficiary memory tmpBene = beneficiaryGratuity()[beneficiaryNumber];
         require(tmpBene.beneficiary == msg.sender, "only current can swap");
         require(beneficiary != address(0), "must not be 0 address");
@@ -122,9 +105,7 @@ abstract contract LottoGratuity is Lotto {
         uint256 len = tempBene.length;
         for (uint256 i = 0; i < len; ++i) {
             if (tempBene[i].gratuity > 0) {
-                payable(tempBene[i].beneficiary).transfer(
-                    amount.mulDiv(tempBene[i].gratuity, 1000)
-                );
+                payable(tempBene[i].beneficiary).transfer(amount.mulDiv(tempBene[i].gratuity, 1000));
             }
         }
 

@@ -38,15 +38,11 @@ abstract contract ERC80085 is ERC20 {
         return _totalSupply;
     }
 
-    function balanceOf(
-        address account
-    ) public view virtual override returns (uint256) {
+    function balanceOf(address account) public view virtual override returns (uint256) {
         return _holders[account].balance;
     }
 
-    function holderData(
-        address account
-    ) public view virtual returns (TokenHolder memory) {
+    function holderData(address account) public view virtual returns (TokenHolder memory) {
         return _holders[account];
     }
 
@@ -95,11 +91,7 @@ abstract contract ERC80085 is ERC20 {
     /// @param from person who's transferring these tokens
     /// @param to person who's getting these tokens
     /// @param amount the amount of tokens to be sent * 10 ** -18
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
+    function _transfer(address from, address to, uint256 amount) internal virtual override {
         require(from != address(0), "transfer from the zero address");
         require(to != address(0), "transfer to the zero address");
 
@@ -158,9 +150,7 @@ abstract contract ERC80085 is ERC20 {
     /// @param account the person we are logging the transaction for
     function _logTokenTransaction(address account, uint256 amount) private {
         if (_holders[account].stakedOnBlock > 0) {
-            _holders[account].transferSnaps.push(
-                Snapshot({ blockNumber: block.number, snapBalance: amount })
-            );
+            _holders[account].transferSnaps.push(Snapshot({ blockNumber: block.number, snapBalance: amount }));
         }
         _holders[account].balance = amount;
     }
@@ -173,11 +163,7 @@ abstract contract ERC80085 is ERC20 {
     /// @param from whom the tokens are being sent
     /// @param to whom the tokens are being sent
     /// @param amount of tokens * 10 ** -18 to be sent
-    function _updateStakedSupply(
-        address from,
-        address to,
-        uint256 amount
-    ) private {
+    function _updateStakedSupply(address from, address to, uint256 amount) private {
         if (_holders[from].stakedOnBlock > 0) {
             if (_holders[to].stakedOnBlock == 0) {
                 unchecked {

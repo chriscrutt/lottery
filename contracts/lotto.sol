@@ -88,18 +88,8 @@ contract Lotto is LottoTickets, Context {
 
     /// @dev this updates the placeholder winning info for the current nonce and
     /// sets it to... the winning info
-    function _logWinningPlayer(
-        address account,
-        uint256 winnings,
-        uint256 ticket
-    ) internal virtual {
-        _winningHistory.push(
-            WinningInfo({
-                winner: account,
-                winningAmount: winnings,
-                winningTicket: ticket
-            })
-        );
+    function _logWinningPlayer(address account, uint256 winnings, uint256 ticket) internal virtual {
+        _winningHistory.push(WinningInfo({ winner: account, winningAmount: winnings, winningTicket: ticket }));
     }
 
     /**
@@ -156,12 +146,7 @@ contract Lotto is LottoTickets, Context {
      * The resulting hash is then converted to a uint256 and reduced modulo the current ticket ID
      * to obtain a number in the range [0, current ticket ID).
      */
-    function _calculateWinningTicket()
-        internal
-        view
-        virtual
-        returns (uint256 winningTicket)
-    {
+    function _calculateWinningTicket() internal view virtual returns (uint256 winningTicket) {
         // Get the block hash for the ending block
         bytes32 bHash = blockhash(_endingBlock);
 
