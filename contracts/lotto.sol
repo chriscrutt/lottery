@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-import "./lottoTicketV2.sol";
+import "./LottoTicketsV2.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
 /**
@@ -10,7 +10,7 @@ TODO
 [ ] lottoTicketsV2 is all internal contracts, use them/make public here
 [ ] change public/external/private/internal functions since lotto.sol is being inherited
 [ ] change NatSpec
-[ ] make more gas-efficient
+[x] make more gas-efficient
 [ ] maybe ignore to functions mixed up because where they are placed right now makes it flow better
 
 

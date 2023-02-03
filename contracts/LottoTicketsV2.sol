@@ -5,9 +5,10 @@ pragma solidity ^0.8.17;
 
 TODO
 
-[ ] make more gas-efficient
+[x] make more gas-efficient
 [ ] add ignore to functions mixed up because where they are placed right now makes it flow better
 [ ] add NatSpec
+[ ] make some internal functions public?
 
 
  */
@@ -41,6 +42,10 @@ contract LottoTicketsV2 {
         _ticketBundles.push();
     }
 
+    function _privTicketBundles() private view returns (TicketBundle[] memory) {
+        return _ticketBundles;
+    }
+
     function _playerStats(address player) internal view virtual returns (PlayerRounds memory) {
         return (_playerInfo[player]);
     }
@@ -49,7 +54,7 @@ contract LottoTicketsV2 {
         return _allTimeTicketNum;
     }
 
-    function _cirrculatingTickets() internal view virtual returns (uint256) {
+    function _circulatingTickets() internal view virtual returns (uint256) {
         return _ticketNum;
     }
 
@@ -71,22 +76,21 @@ contract LottoTicketsV2 {
         emit TicketsMinted(to, amount);
     }
 
-    function _findTicketOwner(
-        uint256 ticketNum,
-        TicketBundle[] memory ticketBundles
-    ) internal pure virtual returns (address) {
+    function _findTicketOwner(uint256 ticketNum) internal view virtual returns (address) {
+        TicketBundle[] memory bundle = _privTicketBundles();
+
         uint256 low = 0;
-        uint256 high = ticketBundles.length - 1;
+        uint256 high = bundle.length - 1;
 
         while (low <= high) {
             uint256 mid = (low + high) / 2;
 
-            if (ticketBundles[mid].startingTicket <= ticketNum && ticketNum <= ticketBundles[mid].endingTicket) {
-                return ticketBundles[mid].bundleOwner;
-            } else if (ticketBundles[mid].endingTicket < ticketNum) {
-                low = mid + 1;
+            if (bundle[mid].startingTicket <= ticketNum && ticketNum <= bundle[mid].endingTicket) {
+                return bundle[mid].bundleOwner;
+            } else if (bundle[mid].endingTicket < ticketNum) {
+                low = ++mid;
             } else {
-                high = mid - 1;
+                high = --mid;
             }
         }
 
@@ -99,6 +103,6 @@ contract LottoTicketsV2 {
         _allTimeTicketNum += _ticketNum;
         _ticketNum = 0;
         _ticketBundles.push();
-        _roundNumber++;
+        ++_roundNumber;
     }
 }
