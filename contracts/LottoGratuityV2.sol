@@ -65,6 +65,19 @@ abstract contract LottoGratuity is BasicLotto {
         }
     }
 
+    function _payout(uint256 amount) internal virtual override {
+        uint256 len = _beneficiaries.length;
+        for (uint256 i = 0; i < len; ++i) {
+            // uint256 mulla = balance.mulDiv(
+            //             _beneficiaries[i].gratuity,
+            //             1000
+            //             );
+            uint256 mulla = (amount * _beneficiaries[i].gratuity) / 1000;
+            payable(_beneficiaries[i].beneficiary).transfer(mulla);
+        }
+        super._payout(address(this).balance);
+    }
+
     function _swapBeneficiary(address oldBeneficiary, address newBeneficiary, uint256 newGratuity) private {
         require(newBeneficiary != address(0), "can't be 0 address");
         uint256 len = _beneficiaries.length;
@@ -78,24 +91,5 @@ abstract contract LottoGratuity is BasicLotto {
                 break;
             }
         }
-    }
-
-    function _payout(uint256 amount) internal virtual override {
-        uint256 len = _beneficiaries.length;
-        for (uint256 i = 0;
-        i < len;
-        ++i) {
-            // uint256 mulla = balance.mulDiv(
-            //             _beneficiaries[i].gratuity,
-            //             1000
-            //             );
-            uint256 mulla = amount *
-            _beneficiaries[i].gratuity /
-            1000;
-            payable(
-                _beneficiaries[i].beneficiary
-                ).transfer(mulla);
-        }
-        super._payout(address(this).balance);
     }
 }
