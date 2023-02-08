@@ -16,6 +16,9 @@ TODO
 [ ] make sure flow works so I'm not giving them tokens/eth before i do whatever\
 [ ] test binary search functions
 [ ] make sure send is sending tokens not ether
+[ ] make ownable/whatever for receivedPayout cause only lottoDAO should be calling that
+[ ] make sure not deleting things that shouldn't be deleted
+[ ] gas-efficiency
 
 
  */
@@ -36,11 +39,15 @@ contract StakingContract is
         uint256 tokensStaked;
     }
 
+    struct Player {
+        Snapshot[] snapshots;
+        uint256 tokensStaked;
+        uint256 etherWithdrawn;
+    }
+
     uint256 private _totalCurrentlyStaked;
 
-    mapping(address => Snapshot[]) private _playerSnaps;
-    mapping(address => uint256) private _playerTokensStaked;
-    mapping(address => uint256) private _playerEtherWithdrawn;
+    mapping(address => Player) private _players;
 
     Payouts[] private _payouts;
 
@@ -64,15 +71,15 @@ contract StakingContract is
 
     function unstake(uint256 tokensToUnstake) public {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
-        require(_playerTokensStaked[_msgSender()] - tokensToUnstake > 0, "unstaking too many tokens");
+        require(_players[_msgSender()].tokensStaked - tokensToUnstake > 0, "unstaking too many tokens");
         _unstake(tokensToUnstake, _msgSender());
         _stakingToken.send(_msgSender(), tokensToUnstake, "");
     }
 
     function unstakeAll() public {
-        require(_playerTokensStaked[_msgSender()] > 0, "have no tokens to unstake");
-        _unstake(_playerTokensStaked[_msgSender()], _msgSender());
-        _stakingToken.send(_msgSender(), _playerTokensStaked[_msgSender()], "");
+        require(_players[_msgSender()].tokensStaked > 0, "have no tokens to unstake");
+        _unstake(_players[_msgSender()].tokensStaked, _msgSender());
+        _stakingToken.send(_msgSender(), _players[_msgSender()].tokensStaked, "");
     }
 
     function withdrawRewards(uint256 amount) public {
@@ -94,7 +101,7 @@ contract StakingContract is
 
     function _stake(uint256 tokensToStake, address staker) private {
         _totalCurrentlyStaked += tokensToStake;
-        _playerTokensStaked[staker] += tokensToStake;
+        _players[staker].tokensStaked += tokensToStake;
 
         // or - need to move down in case this is first transaction
         // uint256 staked = _accountSnaps[staker][_accountSnaps[staker].length - 1].tokensStaked;
@@ -102,30 +109,28 @@ contract StakingContract is
 
         // or don't assign variables and just paste them in
 
-        if (_playerSnaps[staker].length == 0) {
-            _playerSnaps[staker].push(Snapshot(block.number, tokensToStake));
+        if (_players[staker].snapshots.length == 0) {
+            _players[staker].snapshots.push(Snapshot(block.number, tokensToStake));
         } else {
-            _playerSnaps[staker].push(Snapshot(block.number, _playerTokensStaked[staker]));
+            _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
         }
     }
 
     function _unstake(uint256 tokensToUnstake, address staker) private {
-        _playerTokensStaked[staker] -= tokensToUnstake;
+        _players[staker].tokensStaked -= tokensToUnstake;
         _totalCurrentlyStaked -= tokensToUnstake;
 
-        if (_playerTokensStaked[staker] == 0) {
-            delete _playerTokensStaked[staker];
+        if (_players[staker].tokensStaked == 0) {
+            delete _players[staker].snapshots;
         } else {
-            _playerSnaps[staker].push(Snapshot(block.number, _playerTokensStaked[staker]));
+            _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
         }
     }
 
     function _withdrawRewards(address account, uint256 amount) private {
-        uint256 eth = _accEth(account) - _playerEtherWithdrawn[account];
+        uint256 eth = _accEth(account) - _players[account].etherWithdrawn;
         require(amount <= eth, "amount > available eth");
         if (amount == eth || amount == 0) {
-            delete _playerSnaps[account];
-            delete _playerEtherWithdrawn[account];
             payable(account).transfer(eth);
         } else {
             payable(account).transfer(amount);
@@ -134,7 +139,7 @@ contract StakingContract is
 
     function _accEth(address account) private view returns (uint256 eth) {
         // get person whos accumulated ether we're checking
-        Snapshot[] memory stakeHistory = _playerSnaps[account];
+        Snapshot[] memory stakeHistory = _players[account].snapshots;
 
         // get array of winning/lottery information
         Payouts[] memory lottoHistory = _payouts;
