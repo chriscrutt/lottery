@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 import "./LottoTicketsV2.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+
 // import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -16,8 +17,10 @@ TODO
 
  */
 
-contract BasicLotto is LottoTicketsV2, Context
-// , Ownable 
+contract BasicLotto is
+    LottoTicketsV2,
+    Context
+    // , Ownable
 {
     struct Round {
         address winner;
@@ -41,6 +44,17 @@ contract BasicLotto is LottoTicketsV2, Context
         _endingBlock = block.number + lottoLength_;
     }
 
+    function buyTickets() public payable virtual {
+        //address(this).balance >= _potMinimum()
+        require(block.number <= _endingBlock || circulatingTickets() <= _minPot, "lottery is over");
+        require(msg.value > 0, "gotta pay to play");
+        _mintTickets(_msgSender(), msg.value);
+    }
+
+    function _logRound(address winner, uint256 amount) internal virtual {
+        _rounds.push(Round(winner, amount));
+    }
+
     function _lotteryHistory() internal virtual returns (Round[] memory) {
         return _rounds;
     }
@@ -57,18 +71,6 @@ contract BasicLotto is LottoTicketsV2, Context
         return _endingBlock;
     }
 
-    function buyTickets() public payable virtual { //address(this).balance >= _potMinimum()
-        require(block.number <= _endingBlock || _circulatingTickets() <= _minPot, "lottery is over");
-        require(msg.value > 0, "gotta pay to play");
-        _mintTickets(_msgSender(), msg.value);
-    }
-
-    function _calculateWinningTicket() private view returns (uint256) {
-        return
-            uint256(keccak256(abi.encodePacked(blockhash(_endingBlock + 1), block.prevrandao, _circulatingTickets()))) %
-            _circulatingTickets();
-    }
-
     function _payout(uint256 amount) internal virtual {
         uint256 winningTicket = _calculateWinningTicket();
         address winner = _findTicketOwner(winningTicket);
@@ -79,17 +81,9 @@ contract BasicLotto is LottoTicketsV2, Context
         emit Payout(winner, amount);
     }
 
-    // function payout() public virtual 
-    // // onlyOwner 
-    // {
-    //     require(block.number > _endingBlock, "lottery time isn't up");
-    //     require(address(this).balance >= _minPot, "minimum pot hasn't been reached");
-    //     _payout(address(this).balance);
-
-    //     // _afterPayout();
-    // }
-
-    function _logRound(address winner, uint256 amount) internal virtual {
-        _rounds.push(Round(winner, amount));
+    function _calculateWinningTicket() private view returns (uint256) {
+        return
+            uint256(keccak256(abi.encodePacked(blockhash(_endingBlock + 1), block.prevrandao, circulatingTickets()))) %
+            circulatingTickets();
     }
 }
