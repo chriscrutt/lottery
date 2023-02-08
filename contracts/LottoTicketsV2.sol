@@ -38,28 +38,24 @@ contract LottoTicketsV2 {
 
     event TicketsMinted(address to, uint256 amount);
 
-    // constructor() {
-    //     _ticketBundles.push();
-    // }
-
-    function _privTicketBundles() private view returns (TicketBundle[] memory) {
-        return _ticketBundles;
-    }
-
-    function _playerStats(address player) internal view virtual returns (PlayerRounds memory) {
+    function playerStats(address player) public view virtual returns (PlayerRounds memory) {
         return (_playerInfo[player]);
     }
 
-    function _totalTicketsAllTime() internal view virtual returns (uint256) {
+    function totalTicketsAllTime() public view virtual returns (uint256) {
         return _allTimeTicketNum;
     }
 
-    function _circulatingTickets() internal view virtual returns (uint256) {
+    function circulatingTickets() public view virtual returns (uint256) {
         return _ticketNum;
     }
 
-    function _round() internal view virtual returns (uint256) {
+    function round() public view virtual returns (uint256) {
         return _roundNumber;
+    }
+
+    function findTicketOwner(uint256 ticketNum) public view virtual returns (address) {
+        return _findTicketOwner(ticketNum);
     }
 
     function _mintTickets(address to, uint256 amount) internal virtual {
@@ -74,6 +70,13 @@ contract LottoTicketsV2 {
             _playerInfo[to].mostRecentRound = _roundNumber;
         }
         emit TicketsMinted(to, amount);
+    }
+
+    function _reset() internal virtual {
+        delete _ticketBundles;
+        _allTimeTicketNum += _ticketNum;
+        _ticketNum = 0;
+        ++_roundNumber;
     }
 
     function _findTicketOwner(uint256 ticketNum) internal view virtual returns (address) {
@@ -94,15 +97,6 @@ contract LottoTicketsV2 {
             }
         }
 
-        // return address(0);
         revert("address not found");
-    }
-
-    function _reset() internal virtual {
-        delete _ticketBundles;
-        _allTimeTicketNum += _ticketNum;
-        _ticketNum = 0;
-        // _ticketBundles.push();
-        ++_roundNumber;
     }
 }

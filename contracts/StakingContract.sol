@@ -15,11 +15,13 @@ TODO
 [ ] reentrency guards?
 [ ] make sure flow works so I'm not giving them tokens/eth before i do whatever\
 [ ] test binary search functions
+[ ] make sure send is sending tokens not ether
 
 
  */
-contract StakingContract is Context
-// Ownable 
+contract StakingContract is
+    Context
+    // Ownable
 {
     using Math for uint256;
 
@@ -28,10 +30,6 @@ contract StakingContract is Context
         uint256 totalStakedSupply;
         uint256 blockNumber;
     }
-
-    // Just have LottoDAOV2 call a function that has an argument that says the amount.
-    // issue is it'd have to look for this address which would consume gas and isn't fun
-    // eh nevermind you can just store the latest 
 
     struct Snapshot {
         uint256 blockNumber;
@@ -53,8 +51,8 @@ contract StakingContract is Context
         // _payouts.push();
     }
 
-    function totalCurrentlyStaked() public view returns (uint256) {
-        return _totalCurrentlyStaked;
+    function receivedPayout(uint256 value) external {
+        _payouts.push(Payouts(value, _totalCurrentlyStaked, block.number));
     }
 
     // reentrency guard?
@@ -62,6 +60,36 @@ contract StakingContract is Context
         require(tokensToStake > 0, "staked tokens must be > 0");
         _stakingToken.operatorSend(_msgSender(), address(this), tokensToStake, "", "");
         _stake(tokensToStake, _msgSender());
+    }
+
+    function unstake(uint256 tokensToUnstake) public {
+        require(tokensToUnstake > 0, "must unstake > 0 tokens");
+        require(_playerTokensStaked[_msgSender()] - tokensToUnstake > 0, "unstaking too many tokens");
+        _unstake(tokensToUnstake, _msgSender());
+        _stakingToken.send(_msgSender(), tokensToUnstake, "");
+    }
+
+    function unstakeAll() public {
+        require(_playerTokensStaked[_msgSender()] > 0, "have no tokens to unstake");
+        _unstake(_playerTokensStaked[_msgSender()], _msgSender());
+        _stakingToken.send(_msgSender(), _playerTokensStaked[_msgSender()], "");
+    }
+
+    function withdrawRewards(uint256 amount) public {
+        require(amount > 0, "amount must be > 0");
+        _withdrawRewards(_msgSender(), amount);
+    }
+
+    function withdrawAllRewards() public {
+        _withdrawRewards(_msgSender(), 0);
+    }
+
+    function payoutList() public view returns (Payouts[] memory) {
+        return _payouts;
+    }
+
+    function totalCurrentlyStaked() public view returns (uint256) {
+        return _totalCurrentlyStaked;
     }
 
     function _stake(uint256 tokensToStake, address staker) private {
@@ -81,19 +109,6 @@ contract StakingContract is Context
         }
     }
 
-    function unstake(uint256 tokensToUnstake) public {
-        require(tokensToUnstake > 0, "must unstake > 0 tokens");
-        require(_playerTokensStaked[_msgSender()] - tokensToUnstake > 0, "unstaking too many tokens");
-        _unstake(tokensToUnstake, _msgSender());
-        _stakingToken.send(_msgSender(), tokensToUnstake, "");
-    }
-
-    function unstakeAll() public {
-        require(_playerTokensStaked[_msgSender()] > 0, "have no tokens to unstake");
-        _unstake(_playerTokensStaked[_msgSender()], _msgSender());
-        _stakingToken.send(_msgSender(), _playerTokensStaked[_msgSender()], "");
-    }
-
     function _unstake(uint256 tokensToUnstake, address staker) private {
         _playerTokensStaked[staker] -= tokensToUnstake;
         _totalCurrentlyStaked -= tokensToUnstake;
@@ -103,15 +118,6 @@ contract StakingContract is Context
         } else {
             _playerSnaps[staker].push(Snapshot(block.number, _playerTokensStaked[staker]));
         }
-    }
-
-    function withdrawRewards(uint256 amount) public {
-        require(amount > 0, "amount must be > 0");
-        _withdrawRewards(_msgSender(), amount);
-    }
-
-    function withdrawAllRewards() public {
-        _withdrawRewards(_msgSender(), 0);
     }
 
     function _withdrawRewards(address account, uint256 amount) private {
@@ -203,30 +209,11 @@ contract StakingContract is Context
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    /////////////////////////////////////////
-
-    //////////////////////////////////////////
-
-    function receivedPayout(uint256 value) external {
-        _payouts.push(Payouts(value, _totalCurrentlyStaked, block.number));
-    }
-
-    function payoutList() public view returns (Payouts[] memory) {
-        return _payouts;
+    /* solhint-disable ordering, no-empty-blocks*/
+    function tokensReceived(address, address from, address, uint256 amount, bytes calldata, bytes calldata) external {
+        _stake(amount, from);
     }
 
     receive() external payable {}
-
-    function tokensReceived(
-        address operator,
-        address from,
-        address to,
-        uint256 amount,
-        bytes calldata userData,
-        bytes calldata operatorData
-    ) external {
-        _stake(amount, from);
-    }
+    /* solhint-enable ordering, no-empty-blocks */
 }
