@@ -1,40 +1,91 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.18;
 
 import "./LottoGratuityV2.sol";
-import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
+import "./StakingContract.sol";
+import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 
-contract LottoDAOV2 is Context {
-    struct Snapshot {
-        uint256 blockNumber;
-        uint256 tokensStaked;
-        uint256 etherWithdrawn;
+/**
+
+TODO
+
+[ ] make payout internal?
+[ ] see if you can get rid of any redundant imports
+[ ] gas stuff
+ 
+ */
+
+contract LottoRewardsToken is ERC777 {
+    constructor(
+        string memory rewardTokenName,
+        string memory rewardTokenSymbol,
+        address[] memory owners
+    ) ERC777(rewardTokenName, rewardTokenSymbol, owners) {}
+
+    function mint(address account, uint256 amount) external {
+        require(isOperatorFor(_msgSender(), address(0)), "not contract owner");
+        _mint(account, amount, "", "");
+    }
+}
+
+abstract contract LottoDAO is LottoGratuity {
+    using Math for uint256;
+
+    LottoRewardsToken private _lottoRewardsToken;
+    StakingContract private _stakingContract;
+
+    uint256 private _rewardsPerBlock;
+
+    uint256 private _daoGratuity;
+
+    constructor(
+        string memory rewardTokenName,
+        string memory rewardTokenSymbol,
+        uint256 rewardsPerBlock,
+        address[] memory beneficiaries,
+        uint256[] memory gratuityTimes1000,
+        uint256 daoGratuity,
+        uint256 minPot_,
+        uint256 lottoLength_
+    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_) {
+        // constructor(address[] memory beneficiaries, uint256[] memory gratuityTimes1000)
+        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol, _makeOwner());
+        _stakingContract = new StakingContract(address(_lottoRewardsToken));
+        _rewardsPerBlock = rewardsPerBlock;
+        require(daoGratuity > 0, "DAO must get some reward");
+        _addBeneficiary(address(_stakingContract), daoGratuity);
     }
 
-    address private _stakeableToken;
-
-    mapping(address => Snapshot[]) private _accountSnaps;
-
-    function deposit(uint256 tokensToStake) public {
-        IERC777(_stakeableToken).operatorSend(_msgSender(), address(this), tokensToStake, "", "");
-        _deposit(tokensToStake, _msgSender());
+    function _makeOwner() private view returns (address[] memory) {
+        address[] memory own = new address[](1);
+        own[0] = address(this);
+        return own;
     }
 
-    function _deposit(uint256 tokensToStake, address staker) private {
-        // may be better than calling that mumbo jumbo twice
-        Snapshot memory snap = _accountSnaps[staker][_accountSnaps[staker].length - 1];
+    function _start(uint256 blockDif) internal virtual {
 
-        if (_accountSnaps[staker].length == 0) {
-            _accountSnaps[staker].push(Snapshot(block.number, tokensToStake, 0));
-        } else {
-            _accountSnaps[staker].push(
-                Snapshot(block.number, snap.tokensStaked + tokensToStake, snap.etherWithdrawn)
-            );
+        uint256 tokensToReward = 0;
+        uint256 tmpRewardsPerBlock = _rewardsPerBlock;
+
+        for (uint256 i = 0; i < blockDif; ++i) {
+            tokensToReward += tmpRewardsPerBlock;
+            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(999, 1000, Math.Rounding.Up);
         }
+
+        _rewardsPerBlock = tmpRewardsPerBlock;
+        _lottoRewardsToken.mint(msg.sender, tokensToReward);
     }
 
-    function withdrawableEth() public view returns (uint256) {
+            // (bool success,) = address(_stakingContract).call{value: amount * _daoGratuity / 1000}(abi.encodeWithSignature("add(uint256)"));
 
+
+    function payoutAndRestart() public virtual {
+        require(block.number > _lotteryEndsAfterBlock(), "lottery time isn't up");
+        require(address(this).balance >= _potMinimum(), "minimum pot hasn't been reached");
+        uint256 blockDif = block.number - _lotteryEndsAfterBlock();
+        uint256 balance = address(this).balance;
+        _payout(balance);
+        _stakingContract.receivedPayout(_daoGratuity * balance);
+        _start(blockDif);
     }
 }

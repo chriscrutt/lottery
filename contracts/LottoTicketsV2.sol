@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.18;
 
 /**
 
@@ -38,9 +38,9 @@ contract LottoTicketsV2 {
 
     event TicketsMinted(address to, uint256 amount);
 
-    constructor() {
-        _ticketBundles.push();
-    }
+    // constructor() {
+    //     _ticketBundles.push();
+    // }
 
     function _privTicketBundles() private view returns (TicketBundle[] memory) {
         return _ticketBundles;
@@ -63,8 +63,8 @@ contract LottoTicketsV2 {
     }
 
     function _mintTickets(address to, uint256 amount) internal virtual {
-        _ticketBundles[_ticketBundles.length - 1] = TicketBundle(_ticketNum, _ticketNum + amount, to);
-        _ticketNum += amount + 1;
+        _ticketBundles.push(TicketBundle(_ticketNum, _ticketNum + amount, to));
+        _ticketNum += amount;
         if (_playerInfo[to].mostRecentRound == _roundNumber) {
             _playerInfo[to].alltimeTickets += amount;
             _playerInfo[to].currentTickets += amount;
@@ -77,7 +77,7 @@ contract LottoTicketsV2 {
     }
 
     function _findTicketOwner(uint256 ticketNum) internal view virtual returns (address) {
-        TicketBundle[] memory bundle = _privTicketBundles();
+        TicketBundle[] memory bundle = _ticketBundles;
 
         uint256 low = 0;
         uint256 high = bundle.length - 1;
@@ -102,7 +102,7 @@ contract LottoTicketsV2 {
         delete _ticketBundles;
         _allTimeTicketNum += _ticketNum;
         _ticketNum = 0;
-        _ticketBundles.push();
+        // _ticketBundles.push();
         ++_roundNumber;
     }
 }

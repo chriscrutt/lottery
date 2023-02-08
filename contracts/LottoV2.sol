@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 import "./LottoTicketsV2.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+// import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
 
@@ -16,7 +16,16 @@ TODO
 
  */
 
-contract BasicLotto is LottoTicketsV2, Context, Ownable {
+contract BasicLotto is LottoTicketsV2, Context
+// , Ownable 
+{
+    struct Round {
+        address winner;
+        uint256 pot;
+    }
+
+    Round[] private _rounds;
+
     uint256 private _minPot;
 
     uint256 private _lottoLength;
@@ -32,6 +41,10 @@ contract BasicLotto is LottoTicketsV2, Context, Ownable {
         _endingBlock = block.number + lottoLength_;
     }
 
+    function _lotteryHistory() internal virtual returns (Round[] memory) {
+        return _rounds;
+    }
+
     function _potMinimum() internal virtual returns (uint256) {
         return _minPot;
     }
@@ -44,8 +57,8 @@ contract BasicLotto is LottoTicketsV2, Context, Ownable {
         return _endingBlock;
     }
 
-    function buyTickets() public payable virtual {
-        require(block.number <= _endingBlock || address(this).balance < _minPot, "lottery is over");
+    function buyTickets() public payable virtual { //address(this).balance >= _potMinimum()
+        require(block.number <= _endingBlock || _circulatingTickets() <= _minPot, "lottery is over");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
     }
@@ -56,19 +69,27 @@ contract BasicLotto is LottoTicketsV2, Context, Ownable {
             _circulatingTickets();
     }
 
-    function _payout() internal virtual {
+    function _payout(uint256 amount) internal virtual {
         uint256 winningTicket = _calculateWinningTicket();
         address winner = _findTicketOwner(winningTicket);
         _reset();
         _endingBlock = block.number + _lottoLength;
-        uint256 amount = address(this).balance;
+        _logRound(winner, amount);
         payable(winner).transfer(amount);
         emit Payout(winner, amount);
     }
 
-    function payout() public virtual onlyOwner {
-        require(block.number > _endingBlock, "lottery time isn't up");
-        require(address(this).balance >= _minPot, "minimum pot hasn't been reached");
-        _payout();
+    // function payout() public virtual 
+    // // onlyOwner 
+    // {
+    //     require(block.number > _endingBlock, "lottery time isn't up");
+    //     require(address(this).balance >= _minPot, "minimum pot hasn't been reached");
+    //     _payout(address(this).balance);
+
+    //     // _afterPayout();
+    // }
+
+    function _logRound(address winner, uint256 amount) internal virtual {
+        _rounds.push(Round(winner, amount));
     }
 }
