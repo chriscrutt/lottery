@@ -56,14 +56,17 @@ abstract contract LottoDAO is LottoGratuity {
         _addBeneficiary(address(_stakingContract), daoGratuity);
     }
 
-    function _makeOwner() private view returns (address[] memory) {
-        address[] memory own = new address[](1);
-        own[0] = address(this);
-        return own;
+    function payoutAndRestart() public virtual {
+        require(block.number > _lotteryEndsAfterBlock(), "lottery time isn't up");
+        require(address(this).balance >= _potMinimum(), "minimum pot hasn't been reached");
+        uint256 blockDif = block.number - _lotteryEndsAfterBlock();
+        uint256 balance = address(this).balance;
+        _payout(balance);
+        _stakingContract.receivedPayout(_daoGratuity * balance);
+        _start(blockDif);
     }
 
     function _start(uint256 blockDif) internal virtual {
-
         uint256 tokensToReward = 0;
         uint256 tmpRewardsPerBlock = _rewardsPerBlock;
 
@@ -76,16 +79,9 @@ abstract contract LottoDAO is LottoGratuity {
         _lottoRewardsToken.mint(msg.sender, tokensToReward);
     }
 
-            // (bool success,) = address(_stakingContract).call{value: amount * _daoGratuity / 1000}(abi.encodeWithSignature("add(uint256)"));
-
-
-    function payoutAndRestart() public virtual {
-        require(block.number > _lotteryEndsAfterBlock(), "lottery time isn't up");
-        require(address(this).balance >= _potMinimum(), "minimum pot hasn't been reached");
-        uint256 blockDif = block.number - _lotteryEndsAfterBlock();
-        uint256 balance = address(this).balance;
-        _payout(balance);
-        _stakingContract.receivedPayout(_daoGratuity * balance);
-        _start(blockDif);
+    function _makeOwner() private view returns (address[] memory) {
+        address[] memory own = new address[](1);
+        own[0] = address(this);
+        return own;
     }
 }
