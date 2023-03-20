@@ -2,88 +2,144 @@
 pragma solidity ^0.8.18;
 import "./LottoTicketsV2.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-
-// import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
 
 TODO
 
 [x] make more gas-efficient
-[ ] add ignore to functions mixed up because where they are placed right now makes it flow better
-[ ] add NatSpec
-[ ] make some internal functions public?
+[x] add ignore to functions mixed up because where they are placed right now makes it flow better
+[x] add NatSpec
+[x] make some internal functions public?
+[-] should lottery end on block or block after
 
 
  */
 
-contract BasicLotto is
-    LottoTicketsV2,
-    Context
-    // , Ownable
-{
+contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
+    // round info, easy
     struct Round {
         address winner;
         uint256 pot;
     }
 
+    // list of all the rounds played
     Round[] private _rounds;
 
+    // minimum pot for lottery to end
     uint256 private _minPot;
 
-    uint256 private _lottoLength;
+    // length of each lottery
+    uint256 private _roundLength;
 
-    uint256 private _endingBlock;
+    uint256 private _beforeDraw;
 
+    uint256 private _afterDraw;
+
+    // what the ending block will be
+    uint64 private _lottoTimer;
+
+    // on lottery payout
     event Payout(address to, uint256 amount);
 
-    constructor(uint256 minPot_, uint256 lottoLength_) {
-        require(minPot_ > 0 || lottoLength_ > 0, "1 arg must be > 0");
+    /**
+     * @notice sets up lottery and starts it!
+     * @param minPot_ minimum pot for lottery to end
+     * @param lottoLength_ minimum block length for lottery to end
+     * @param securityBeforeDraw_ blocks to wait before drawing for security
+     * @param securityAfterDraw_ blocks to wait before payout for security
+     */
+    constructor(uint256 minPot_, uint256 lottoLength_, uint256 securityBeforeDraw_, uint256 securityAfterDraw_) {
+        require(minPot_ > 0, "need garunteed participant");
         _minPot = minPot_;
-        _lottoLength = lottoLength_;
-        _endingBlock = block.number + lottoLength_;
+        _roundLength = lottoLength_;
+        _beforeDraw = securityBeforeDraw_;
+        _afterDraw = securityAfterDraw_;
+        // _endingBlock = block.number + lottoLength_;
+        _lottoTimer = uint64(block.number + lottoLength_);
     }
 
-    function buyTickets() public payable virtual {
-        //address(this).balance >= _potMinimum()
-        require(block.number <= _endingBlock || circulatingTickets() <= _minPot, "lottery is over");
+    /**
+     * @notice buy tickets
+     */
+    function buyTickets() public payable virtual nonReentrant {
+        require(block.number <= _lottoTimer || address(this).balance <= _minPot, "lottery is over");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
     }
 
-    function _logRound(address winner, uint256 amount) internal virtual {
-        _rounds.push(Round(winner, amount));
+    /**
+     * @notice see blocks to go by before drawing winner for security reasons
+     */
+    function blocksBeforeDraw() public view returns (uint256) {
+        return _beforeDraw;
     }
 
-    function _lotteryHistory() internal virtual returns (Round[] memory) {
+    /**
+     * @notice see blocks to go by before paying winner for security reasons
+     */
+    function blocksAfterDraw() public view returns (uint256) {
+        return _afterDraw;
+    }
+
+    /**
+     * @notice get all lottery winners and pot
+     */
+    function lotteryHistory() public view returns (Round[] memory) {
         return _rounds;
     }
 
-    function _potMinimum() internal virtual returns (uint256) {
+    /**
+     * @notice minimum pot
+     */
+    function minimumPot() public view virtual returns (uint256) {
         return _minPot;
     }
 
-    function _lotteryLength() internal virtual returns (uint256) {
-        return _lottoLength;
+    /**
+     * @notice length of each round in blocks
+     */
+    function roundLength() public view virtual returns (uint256) {
+        return _roundLength;
     }
 
-    function _lotteryEndsAfterBlock() internal virtual returns (uint256) {
-        return _endingBlock;
+    /**
+     * @notice what block number will the lotto finish on
+     */
+    function lottoDeadline() public view virtual returns (uint64) {
+        return _lottoTimer;
     }
 
+    /**
+     * @notice current block for player easy access
+     */
+    function currentBlock() public view virtual returns (uint256) {
+        return block.number;
+    }
+
+    /**
+     * @dev calculates winning ticket, finds the ticket owner, resets lottery, pays out winner
+     * @param amount to be paid out to winner
+     */
     function _payout(uint256 amount) internal virtual {
         uint256 winningTicket = _calculateWinningTicket();
         address winner = _findTicketOwner(winningTicket);
         _reset();
-        _endingBlock = block.number + _lottoLength;
-        _logRound(winner, amount);
+        _lottoTimer = uint64(block.number + _roundLength);
+        // _logRound(winner, amount); instead below
+        _rounds.push(Round(winner, amount));
         payable(winner).transfer(amount);
         emit Payout(winner, amount);
     }
 
-    function _calculateWinningTicket() private view returns (uint256) {
+    /**
+     * @dev calculates winning ticket using hashing blockhash, prevrandao, and number of tickets
+     */
+    function _calculateWinningTicket() internal view returns (uint256) {
+        require(_lottoTimer + _beforeDraw < block.number, "wait for finality");
         return
-            uint256(keccak256(abi.encodePacked(blockhash(_endingBlock + 1), block.prevrandao, circulatingTickets()))) %
-            circulatingTickets();
+            uint256(keccak256(abi.encodePacked(blockhash(_lottoTimer + _afterDraw), address(this).balance))) %
+            address(this).balance;
     }
 }

@@ -6,3 +6,7 @@ bin
 contracts/soljson-v0.8.17+commit.8df45f5f.js
 hardhat.config.js
 soljson-v0.8.17+commit.8df45f5f.js
+build
+contracts/.gitkeep
+test/.gitkeep
+migrations/.gitkeep

@@ -4,16 +4,19 @@ pragma solidity ^0.8.18;
 import "./LottoGratuityV2.sol";
 import "./StakingContract.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
 
 TODO
 
-[ ] make payout internal?
-[ ] see if you can get rid of any redundant imports
-[ ] gas stuff
-[ ] include constructor param that lets you sent rate of decay for DAO token?
- 
+[x] make payout internal?
+[x] see if you can get rid of any redundant imports
+[x] gas stuff
+[x] include constructor param that lets you sent rate of decay for DAO token?
+[ ] make some internal/private functions public?
+[ ] make sure daoGratuity also isn't 1000
+
  */
 
 /**
@@ -60,32 +63,51 @@ abstract contract LottoDAO is LottoGratuity {
     // what gratuity the DAO/staking contract will be receiving per lottery payout
     uint256 private _daoGratuity;
 
+    // calculate decay of rewards numerator/denomonator * rewards
+    uint256 private _decayNumerator;
+    uint256 private _decayDenomonator;
+
+    address[] private _owner = new address[](1);
+
     /**
      * @dev sets up EVERYTHING. includes info that'll make the DAO token and staking contract
      * it also initializes LottoGratuity which in turn initializes BasicLotto
      * @param rewardTokenName name of DAO token
      * @param rewardTokenSymbol symbol of DAO token
+     * @param rewardsPerBlock rewards per block
      * @param beneficiaries addresses that will be earning a percentage of the pot each payout
      * @param gratuityTimes1000 gratuity per beneficiary so that 10% = 0.10 but * 1000 = 100
      * @param daoGratuity gratuity the DAO/staking contract should receive
      * @param minPot_ the minimum pot in wei in order for the lottery to conclude
      * @param lottoLength_ length in blocks since (re)start the lottery should go
+     * @param securityBeforeDraw_ amount of blocks before draw for finality
+     * @param securityAfterDraw_ amount of blocks after draw for finality
+     * @param decayNumerator_ calculate decay of rewards numerator/denomonator * rewards
+     * @param decayDenomonator_ calculate decay of rewards numerator/denomonator * rewards
      */
     constructor(
         string memory rewardTokenName,
         string memory rewardTokenSymbol,
         uint256 rewardsPerBlock,
+        uint256 daoGratuity,
+        uint256 decayNumerator_,
+        uint256 decayDenomonator_,
         address[] memory beneficiaries,
         uint256[] memory gratuityTimes1000,
-        uint256 daoGratuity,
         uint256 minPot_,
-        uint256 lottoLength_
-    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_) {
-        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol, _makeOwner());
-        _stakingContract = new StakingContract(address(_lottoRewardsToken));
+        uint256 lottoLength_,
+        uint256 securityBeforeDraw_,
+        uint256 securityAfterDraw_
+    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
+        address[] memory owner = new address[](1);
+        owner[0] = address(this);
+        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol, owner);
+        // _stakingContract = new StakingContract(address(_lottoRewardsToken));
         _rewardsPerBlock = rewardsPerBlock;
+        _decayNumerator = decayNumerator_;
+        _decayNumerator = decayDenomonator_;
         require(daoGratuity > 0, "DAO must get some reward");
-        _addBeneficiary(address(_stakingContract), daoGratuity);
+        // _addBeneficiary(address(_stakingContract), daoGratuity);
     }
 
     /**
@@ -93,10 +115,10 @@ abstract contract LottoDAO is LottoGratuity {
      * @dev makes sure the lottery timer is over and balance reached the minimum pot.
      * uses some internal functions as we do not have access to private variables
      */
-    function payoutAndRestart() public virtual {
-        require(block.number > _lotteryEndsAfterBlock(), "lottery time isn't up");
-        require(address(this).balance >= _potMinimum(), "minimum pot hasn't been reached");
-        uint256 blockDif = block.number - _lotteryEndsAfterBlock();
+    function payoutAndRestart() public virtual nonReentrant {
+        require(lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() < block.number, "wait for finality");
+        require(address(this).balance >= minimumPot(), "minimum pot hasn't been reached");
+        uint256 blockDif = block.number - (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
         uint256 balance = address(this).balance;
         _payout(balance);
         _stakingContract.receivedPayout(_daoGratuity * balance);
@@ -115,19 +137,10 @@ abstract contract LottoDAO is LottoGratuity {
 
         for (uint256 i = 0; i < blockDif; ++i) {
             tokensToReward += tmpRewardsPerBlock;
-            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(999, 1000, Math.Rounding.Up);
+            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(_decayNumerator, _decayDenomonator, Math.Rounding.Up);
         }
 
         _rewardsPerBlock = tmpRewardsPerBlock;
-        _lottoRewardsToken.mint(msg.sender, tokensToReward);
-    }
-
-    /**
-     * @notice to initialize current contract as owner/default operator for ERC777/DAO token
-     */
-    function _makeOwner() private view returns (address[] memory) {
-        address[] memory own = new address[](1);
-        own[0] = address(this);
-        return own;
+        _lottoRewardsToken.mint(_msgSender(), tokensToReward);
     }
 }
