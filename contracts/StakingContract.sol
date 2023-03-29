@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -23,6 +23,8 @@ TODO
 [x] make sure only owners of their addresses can withdraw eth/stake
 [-] (run in remix) if withdrawing all, delete history to clear up storage- not if unstaking all
 [ ] when to make functions public, external, private, internal - receivedPayout??? tokensReceived???
+[ ] change lotto payout to having the lottery contract call it
+[ ] cant delete snapshots cause rely on it for acc eth
 
 
  */
@@ -59,13 +61,13 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
     Payouts[] private _payouts;
 
     // designate the staking/rewards token
-    ERC777 private _stakingToken;
+    IERC20 private _stakingToken;
 
     /**
-     * @param erc777 designates staking/rewards token
+     * @param erc20 designates staking/rewards token
      */
-    constructor(address erc777) {
-        _stakingToken = ERC777(erc777);
+    constructor(address erc20) {
+        _stakingToken = IERC20(erc20);
         // _payouts.push();
     }
 
@@ -73,7 +75,7 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
      * @notice push lotto payout data to array
      * @param value checks what payout is
      */
-    function receivedPayout(uint256 value) external onlyOwner {
+    function sendStakingContractPayout(uint256 value) external onlyOwner {
         _payouts.push(Payouts(value, _totalCurrentlyStaked, block.number));
     }
 
@@ -83,7 +85,7 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
      */
     function stake(uint256 tokensToStake) public nonReentrant {
         require(tokensToStake > 0, "staked tokens must be > 0");
-        _stakingToken.operatorSend(_msgSender(), address(this), tokensToStake, "", "");
+        _stakingToken.transferFrom(_msgSender(), address(this), tokensToStake);
         _stake(tokensToStake, _msgSender());
     }
 
@@ -93,9 +95,12 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
      */
     function unstake(uint256 tokensToUnstake) public nonReentrant {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
-        require(_players[_msgSender()].tokensStaked >= tokensToUnstake, "unstaking too many tokens");
+        require(
+            _players[_msgSender()].tokensStaked >= tokensToUnstake,
+            "unstaking too many tokens"
+        );
         _unstake(tokensToUnstake, _msgSender());
-        _stakingToken.send(_msgSender(), tokensToUnstake, "");
+        _stakingToken.transfer(_msgSender(), tokensToUnstake);
     }
 
     /**
@@ -122,14 +127,25 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
     }
 
     /**
+     * @notice returns total amount of ether available to withdraw
+     */
+    function withdrawableEth(address account) public view returns (uint256) {
+        return _accEth(account) - _players[account].etherWithdrawn;
+    }
+
+    /**
      * @dev adds tokens staked to total staked and player's staked in snapshot
      * @param tokensToStake tokens to stake
      * @param staker tokens to unstake
      */
     function _stake(uint256 tokensToStake, address staker) internal {
-        _totalCurrentlyStaked += tokensToStake;
-        _players[staker].tokensStaked += tokensToStake;
-        _players[staker].snapshots.push(Snapshot(block.number, tokensToStake));
+        unchecked {
+            _totalCurrentlyStaked += tokensToStake;
+            _players[staker].tokensStaked += tokensToStake;
+        }
+        _players[staker].snapshots.push(
+            Snapshot(block.number, _players[staker].tokensStaked)
+        );
     }
 
     /**
@@ -138,14 +154,13 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
      * @param staker tokens to unstake
      */
     function _unstake(uint256 tokensToUnstake, address staker) internal {
-        _players[staker].tokensStaked -= tokensToUnstake;
-        _totalCurrentlyStaked -= tokensToUnstake;
-
-        if (_players[staker].tokensStaked == 0) {
-            delete _players[staker].snapshots;
-        } else {
-            _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
+        unchecked {
+            _players[staker].tokensStaked -= tokensToUnstake;
+            _totalCurrentlyStaked -= tokensToUnstake;
         }
+        _players[staker].snapshots.push(
+            Snapshot(block.number, _players[staker].tokensStaked)
+        );
     }
 
     /**
@@ -154,15 +169,21 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
      * @param amount tokens to unstake
      */
     function _withdrawRewards(address account, uint256 amount) internal {
-        uint256 eth = _accEth(account) - _players[account].etherWithdrawn;
-        require(amount <= eth, "amount > available eth");
+        unchecked {
+            uint256 eth = withdrawableEth(account);
+            require(amount <= eth, "amount > available eth");
 
-        if (amount == eth) {
-            delete _players[account].snapshots;
-            _players[account].snapshots.push(Snapshot(block.number, _players[account].tokensStaked));
-            _players[account].etherWithdrawn = 0;
+            if (amount == eth) {
+                delete _players[account].snapshots;
+                _players[account].snapshots.push(
+                    Snapshot(block.number, _players[account].tokensStaked)
+                );
+                _players[account].etherWithdrawn = 0;
+            } else {
+                _players[account].etherWithdrawn += amount;
+            }
         }
-        payable(account).transfer(amount);
+        require(payable(account).send(amount), "eth transfer failed");
     }
 
     function _accEth(address account) private view returns (uint256 eth) {
@@ -176,15 +197,27 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
         // make special case for first staked?
 
         // find startingPoint of the first lottery who's timestamp is after their first transaction
-        uint256 startingPoint = _binarySearchUpExclusive(lottoHistory, stakeHistory[0].blockNumber, 0);
+        uint256 startingPoint = _binarySearchUpExclusive(
+            lottoHistory,
+            stakeHistory[0].blockNumber,
+            0
+        );
 
         // find the transaction that is closest to the start of that lottery
-        uint256 txNum = _binarySearchDownExclusive(stakeHistory, lottoHistory[startingPoint].blockNumber, 0);
-        require(txNum < 0xffffffffffffffff, "tx not found");
+        uint256 txNum = _binarySearchDownExclusive(
+            stakeHistory,
+            lottoHistory[startingPoint].blockNumber,
+            0
+        );
+        require(txNum < type(uint256).max, "tx not found");
 
         // iterate through the lotteries
         while (startingPoint < len) {
-            txNum = _binarySearchDownExclusive(stakeHistory, lottoHistory[startingPoint].blockNumber, txNum);
+            txNum = _binarySearchDownExclusive(
+                stakeHistory,
+                lottoHistory[startingPoint].blockNumber,
+                txNum
+            );
 
             // calculate the amount of Ether accumulated during the current lottery
             eth += lottoHistory[startingPoint].amount.mulDiv(
@@ -238,18 +271,27 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
         // or a special value if the target is not found
         if (_low != 0) {
             return _low - 1;
+        } else {
+            return type(uint256).max;
         }
 
-        revert("target not found");
+        // revert("target not found");
     }
 
-    /* solhint-disable ordering*/
-    function tokensReceived(address, address from, address, uint256 amount, bytes calldata, bytes calldata) external {
-        require(amount > 0, "amount must be > 0");
-        _stake(amount, from);
-    }
+    // /* solhint-disable ordering*/
+    // // function tokensReceived(
+    // //     address,
+    // //     address from,
+    // //     address,
+    // //     uint256 amount,
+    // //     bytes calldata,
+    // //     bytes calldata
+    // // ) external {
+    // //     require(amount > 0, "amount must be > 0");
+    // //     _stake(amount, from);
+    // // }
 
-    /* solhint-disable no-empty-blocks*/
-    receive() external payable {}
-    /* solhint-enable ordering, no-empty-blocks */
+    // /* solhint-disable no-empty-blocks*/
+    // receive() external payable {}
+    // /* solhint-enable ordering, no-empty-blocks */
 }

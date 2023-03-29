@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.0;
 
 import "./LottoGratuityV2.sol";
 import "./StakingContract.sol";
-import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+import "erc-payable-token/contracts/token/ERC1363/ERC1363.sol";
 
 /**
 
@@ -16,30 +17,23 @@ TODO
 [x] include constructor param that lets you sent rate of decay for DAO token?
 [ ] make some internal/private functions public?
 [ ] make sure daoGratuity also isn't 1000
+[ ] make it so all token transfers potentially can have callbacks when sent to smart contracts?
 
  */
 
-/**
- * @notice allows the owning contract can mint!
- * @dev this makes it so those who help restart the lottery earn token rewards.
- * Those rewards can then be staked to earn a percentage of Ether the DAO is allotted
- */
-contract LottoRewardsToken is ERC777 {
+contract LottoRewardsToken is ERC1363 {
     /**
      * @dev owners are "default operators" which pretty much just means they have authority to spend anyone's tokens
-     * @param rewardTokenName the name of the reward token
-     * @param rewardTokenSymbol the symbol of the reward token
-     * @param owners the default operators of the contract (should be just contract creator in this case)
+     * @param name the name of the reward token
+     * @param symbol the symbol of the reward token
+     * @param totalSupply the total amount of tokens to ever be minted (minting right now)
      */
     constructor(
-        string memory rewardTokenName,
-        string memory rewardTokenSymbol,
-        address[] memory owners
-    ) ERC777(rewardTokenName, rewardTokenSymbol, owners) {}
-
-    function mint(address account, uint256 amount) external {
-        require(isOperatorFor(_msgSender(), address(0)), "not contract owner");
-        _mint(account, amount, "", "");
+        string memory name,
+        string memory symbol,
+        uint256 totalSupply
+    ) ERC20(name, symbol) {
+        _mint(_msgSender(), totalSupply);
     }
 }
 
@@ -98,10 +92,22 @@ abstract contract LottoDAO is LottoGratuity {
         uint256 lottoLength_,
         uint256 securityBeforeDraw_,
         uint256 securityAfterDraw_
-    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
+    )
+        LottoGratuity(
+            beneficiaries,
+            gratuityTimes1000,
+            minPot_,
+            lottoLength_,
+            securityBeforeDraw_,
+            securityAfterDraw_
+        )
+    {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
-        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol, owner);
+        _lottoRewardsToken = new LottoRewardsToken(
+            rewardTokenName,
+            rewardTokenSymbol
+        );
         // _stakingContract = new StakingContract(address(_lottoRewardsToken));
         _rewardsPerBlock = rewardsPerBlock;
         _decayNumerator = decayNumerator_;
@@ -116,9 +122,17 @@ abstract contract LottoDAO is LottoGratuity {
      * uses some internal functions as we do not have access to private variables
      */
     function payoutAndRestart() public virtual nonReentrant {
-        require(lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() < block.number, "wait for finality");
-        require(address(this).balance >= minimumPot(), "minimum pot hasn't been reached");
-        uint256 blockDif = block.number - (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
+        require(
+            lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() <
+                block.number,
+            "wait for finality"
+        );
+        require(
+            address(this).balance >= minimumPot(),
+            "minimum pot hasn't been reached"
+        );
+        uint256 blockDif = block.number -
+            (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
         uint256 balance = address(this).balance;
         _payout(balance);
         _stakingContract.receivedPayout(_daoGratuity * balance);
@@ -137,10 +151,14 @@ abstract contract LottoDAO is LottoGratuity {
 
         for (uint256 i = 0; i < blockDif; ++i) {
             tokensToReward += tmpRewardsPerBlock;
-            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(_decayNumerator, _decayDenomonator, Math.Rounding.Up);
+            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(
+                _decayNumerator,
+                _decayDenomonator,
+                Math.Rounding.Up
+            );
         }
 
         _rewardsPerBlock = tmpRewardsPerBlock;
-        _lottoRewardsToken.mint(_msgSender(), tokensToReward);
+        _lottoRewardsToken.transferAndCall(_msgSender(), tokensToReward);
     }
 }

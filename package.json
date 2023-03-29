@@ -3,10 +3,11 @@
   "license": "ISC",
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.0",
-    "@openzeppelin/contracts-upgradeable": "latest"
+    "@openzeppelin/contracts-upgradeable": "latest",
+    "erc-payable-token": "^4.8.2"
   },
   "devDependencies": {
     "prettier": "^2.8.1",
-    "prettier-plugin-solidity": "^1.1.1"
+    "prettier-plugin-solidity": "^1.1.3"
   }
 }
