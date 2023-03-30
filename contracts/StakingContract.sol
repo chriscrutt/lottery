@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+import "./IStakingContract.sol";
 
 /**
 
@@ -28,15 +31,14 @@ TODO
 
 
  */
-contract StakingContract is Context, ReentrancyGuard, Ownable {
+contract StakingContract is
+    Context,
+    ReentrancyGuard,
+    Ownable,
+    IStakingContract
+{
     using Math for uint256;
-
-    // every lottery payout
-    struct Payouts {
-        uint256 amount;
-        uint256 totalStakedSupply;
-        uint256 blockNumber;
-    }
+    // using SafeERC20 for IERC20;
 
     // snapshot of last token transfer
     struct Snapshot {
@@ -61,75 +63,98 @@ contract StakingContract is Context, ReentrancyGuard, Ownable {
     Payouts[] private _payouts;
 
     // designate the staking/rewards token
-    IERC20 private _stakingToken;
+    IERC20 public stakingToken;
 
     /**
      * @param erc20 designates staking/rewards token
      */
     constructor(address erc20) {
-        _stakingToken = IERC20(erc20);
+        stakingToken = IERC20(erc20);
         // _payouts.push();
     }
 
     /**
      * @notice push lotto payout data to array
-     * @param value checks what payout is
      */
-    function sendStakingContractPayout(uint256 value) external onlyOwner {
-        _payouts.push(Payouts(value, _totalCurrentlyStaked, block.number));
+    function sendPayoutTocontract()
+        external
+        payable
+        override
+        onlyOwner
+        returns (bool)
+    {
+        _payouts.push(Payouts(msg.value, _totalCurrentlyStaked, block.number));
+        return true;
     }
 
     /**
      * @notice stakes tokens
      * @param tokensToStake tokens to stake
      */
-    function stake(uint256 tokensToStake) public nonReentrant {
+    function stake(
+        uint256 tokensToStake
+    ) public override nonReentrant returns (bool) {
         require(tokensToStake > 0, "staked tokens must be > 0");
-        _stakingToken.transferFrom(_msgSender(), address(this), tokensToStake);
+
+        // stakingToken.safeTransferFrom(
+        stakingToken.transferFrom(_msgSender(), address(this), tokensToStake);
+
         _stake(tokensToStake, _msgSender());
+        return true;
     }
 
     /**
      * @notice unstakes tokens
      * @param tokensToUnstake tokens to unstake
      */
-    function unstake(uint256 tokensToUnstake) public nonReentrant {
+    function unstake(
+        uint256 tokensToUnstake
+    ) public override nonReentrant returns (bool) {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
         require(
             _players[_msgSender()].tokensStaked >= tokensToUnstake,
             "unstaking too many tokens"
         );
         _unstake(tokensToUnstake, _msgSender());
-        _stakingToken.transfer(_msgSender(), tokensToUnstake);
+        // stakingToken.safeTransfer(_msgSender(), tokensToUnstake);
+        stakingToken.transfer(_msgSender(), tokensToUnstake);
+        return true;
     }
 
     /**
      * @notice withdraws available ether rewards
      * @param amount ether to claim
      */
-    function withdrawRewards(uint256 amount) public nonReentrant {
+    function withdrawRewards(
+        uint256 amount
+    ) public override nonReentrant returns (bool) {
         require(amount > 0, "amount must be > 0");
         _withdrawRewards(_msgSender(), amount);
+        return true;
     }
 
     /**
      * @notice returns array of lottery payouts
      */
-    function payoutList() public view returns (Payouts[] memory) {
-        return _payouts;
+    function payoutInfo(
+        uint256 id
+    ) public view override returns (Payouts memory) {
+        return _payouts[id];
     }
 
     /**
      * @notice returns total amount of tokens staked
      */
-    function totalCurrentlyStaked() public view returns (uint256) {
+    function totalCurrentlyStaked() public view override returns (uint256) {
         return _totalCurrentlyStaked;
     }
 
     /**
      * @notice returns total amount of ether available to withdraw
      */
-    function withdrawableEth(address account) public view returns (uint256) {
+    function withdrawableEth(
+        address account
+    ) public view override returns (uint256) {
         return _accEth(account) - _players[account].etherWithdrawn;
     }
 

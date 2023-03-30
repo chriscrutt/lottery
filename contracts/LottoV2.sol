@@ -86,8 +86,8 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     /**
      * @notice get all lottery winners and pot
      */
-    function lotteryHistory() public view returns (Round[] memory) {
-        return _rounds;
+    function lotteryLookup(uint256 id) public view returns (Round memory) {
+        return _rounds[id];
     }
 
     /**
