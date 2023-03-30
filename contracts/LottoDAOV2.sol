@@ -116,6 +116,8 @@ abstract contract LottoDAO is LottoGratuity {
         // _addBeneficiary(address(_stakingContract), daoGratuity);
     }
 
+    function lotteryLookup
+
     /**
      * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
      * @dev makes sure the lottery timer is over and balance reached the minimum pot.
