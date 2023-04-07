@@ -13,10 +13,8 @@ struct Payouts {
  * @dev Interface of StakingContract
  */
 interface IStakingContract {
-    /**
-     * @notice push lotto payout data to array
-     */
-    function sendPayoutTocontract() external payable returns (bool);
+
+    receive() external payable;
 
     /**
      * @notice stakes tokens
@@ -51,4 +49,5 @@ interface IStakingContract {
      * @notice returns total amount of ether available to withdraw
      */
     function withdrawableEth(address account) external view returns (uint256);
+
 }

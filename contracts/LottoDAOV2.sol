@@ -18,6 +18,9 @@ TODO
 [ ] make some internal/private functions public?
 [ ] make sure daoGratuity also isn't 1000
 [ ] make it so all token transfers potentially can have callbacks when sent to smart contracts?
+[ ] back to erc20
+[ ] better payout gratuity
+[ ] tf up with _start
 
  */
 
@@ -26,15 +29,8 @@ contract LottoRewardsToken is ERC1363 {
      * @dev owners are "default operators" which pretty much just means they have authority to spend anyone's tokens
      * @param name the name of the reward token
      * @param symbol the symbol of the reward token
-     * @param totalSupply the total amount of tokens to ever be minted (minting right now)
      */
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 totalSupply
-    ) ERC20(name, symbol) {
-        _mint(_msgSender(), totalSupply);
-    }
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 }
 
 /**
@@ -57,10 +53,6 @@ abstract contract LottoDAO is LottoGratuity {
     // what gratuity the DAO/staking contract will be receiving per lottery payout
     uint256 private _daoGratuity;
 
-    // calculate decay of rewards numerator/denomonator * rewards
-    uint256 private _decayNumerator;
-    uint256 private _decayDenomonator;
-
     address[] private _owner = new address[](1);
 
     /**
@@ -76,16 +68,12 @@ abstract contract LottoDAO is LottoGratuity {
      * @param lottoLength_ length in blocks since (re)start the lottery should go
      * @param securityBeforeDraw_ amount of blocks before draw for finality
      * @param securityAfterDraw_ amount of blocks after draw for finality
-     * @param decayNumerator_ calculate decay of rewards numerator/denomonator * rewards
-     * @param decayDenomonator_ calculate decay of rewards numerator/denomonator * rewards
      */
     constructor(
         string memory rewardTokenName,
         string memory rewardTokenSymbol,
         uint256 rewardsPerBlock,
         uint256 daoGratuity,
-        uint256 decayNumerator_,
-        uint256 decayDenomonator_,
         address[] memory beneficiaries,
         uint256[] memory gratuityTimes1000,
         uint256 minPot_,
@@ -110,57 +98,58 @@ abstract contract LottoDAO is LottoGratuity {
         );
         // _stakingContract = new StakingContract(address(_lottoRewardsToken));
         _rewardsPerBlock = rewardsPerBlock;
-        _decayNumerator = decayNumerator_;
-        _decayNumerator = decayDenomonator_;
         require(daoGratuity > 0, "DAO must get some reward");
         // _addBeneficiary(address(_stakingContract), daoGratuity);
     }
 
-    function lotteryLookup
+    // /**
+    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
+    //  * @dev makes sure the lottery timer is over and balance reached the minimum pot.
+    //  * uses some internal functions as we do not have access to private variables
+    //  */
+    // function payoutAndRestart() public virtual nonReentrant {
+    //     require(
+    //         lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() <
+    //             block.number,
+    //         "wait for finality"
+    //     );
+    //     require(
+    //         address(this).balance >= minimumPot(),
+    //         "minimum pot hasn't been reached"
+    //     );
+    //     uint256 blockDif = block.number -
+    //         (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
+    //     uint256 balance = address(this).balance;
+    //     _payout(balance);
+    //     _stakingContract.receivedPayout(_daoGratuity * balance);
+    //     _start(blockDif);
+    // }
 
-    /**
-     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
-     * @dev makes sure the lottery timer is over and balance reached the minimum pot.
-     * uses some internal functions as we do not have access to private variables
-     */
-    function payoutAndRestart() public virtual nonReentrant {
-        require(
-            lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() <
-                block.number,
-            "wait for finality"
-        );
-        require(
-            address(this).balance >= minimumPot(),
-            "minimum pot hasn't been reached"
-        );
-        uint256 blockDif = block.number -
-            (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
-        uint256 balance = address(this).balance;
-        _payout(balance);
-        _stakingContract.receivedPayout(_daoGratuity * balance);
-        _start(blockDif);
-    }
+    function _payout(uint256 amount) internal virtual override {}
 
-    /**
-     * @notice starts the lottery after payout
-     * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is (re)started
-     * it does this by iterating through each block since the lottery ended and then finally updates state variable
-     * @param blockDif is used to calculate the amount of DAO tokens to mint.
-     */
-    function _start(uint256 blockDif) internal virtual {
-        uint256 tokensToReward = 0;
-        uint256 tmpRewardsPerBlock = _rewardsPerBlock;
+    // solhint-disable-next-line no-empty-blocks
+    function _calculateTokenReward() internal virtual returns (uint256) {}
 
-        for (uint256 i = 0; i < blockDif; ++i) {
-            tokensToReward += tmpRewardsPerBlock;
-            tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(
-                _decayNumerator,
-                _decayDenomonator,
-                Math.Rounding.Up
-            );
-        }
+    // /**
+    //  * @notice starts the lottery after payout
+    //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is (re)started
+    //  * it does this by iterating through each block since the lottery ended and then finally updates state variable
+    //  * @param blockDif is used to calculate the amount of DAO tokens to mint.
+    //  */
+    // function _start(uint256 blockDif) internal virtual {
+    //     uint256 tokensToReward = 0;
+    //     uint256 tmpRewardsPerBlock = _rewardsPerBlock;
 
-        _rewardsPerBlock = tmpRewardsPerBlock;
-        _lottoRewardsToken.transferAndCall(_msgSender(), tokensToReward);
-    }
+    //     for (uint256 i = 0; i < blockDif; ++i) {
+    //         tokensToReward += tmpRewardsPerBlock;
+    //         tmpRewardsPerBlock = tmpRewardsPerBlock.mulDiv(
+    //             _decayNumerator,
+    //             _decayDenomonator,
+    //             Math.Rounding.Up
+    //         );
+    //     }
+
+    //     _rewardsPerBlock = tmpRewardsPerBlock;
+    //     _lottoRewardsToken.transferAndCall(_msgSender(), tokensToReward);
+    // }
 }

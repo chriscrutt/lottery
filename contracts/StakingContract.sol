@@ -26,8 +26,8 @@ TODO
 [x] make sure only owners of their addresses can withdraw eth/stake
 [-] (run in remix) if withdrawing all, delete history to clear up storage- not if unstaking all
 [ ] when to make functions public, external, private, internal - receivedPayout??? tokensReceived???
-[ ] change lotto payout to having the lottery contract call it
-[ ] cant delete snapshots cause rely on it for acc eth
+[x] change lotto payout to having the lottery contract call it
+[x] cant delete snapshots cause rely on it for acc eth
 
 
  */
@@ -73,18 +73,9 @@ contract StakingContract is
         // _payouts.push();
     }
 
-    /**
-     * @notice push lotto payout data to array
-     */
-    function sendPayoutTocontract()
-        external
-        payable
-        override
-        onlyOwner
-        returns (bool)
-    {
-        _payouts.push(Payouts(msg.value, _totalCurrentlyStaked, block.number));
-        return true;
+    receive() external payable virtual override nonReentrant onlyOwner {
+        bool received = _receivedLottoPayout();
+        require(received, "failed to add to array");
     }
 
     /**
@@ -93,7 +84,7 @@ contract StakingContract is
      */
     function stake(
         uint256 tokensToStake
-    ) public override nonReentrant returns (bool) {
+    ) public virtual override nonReentrant returns (bool) {
         require(tokensToStake > 0, "staked tokens must be > 0");
 
         // stakingToken.safeTransferFrom(
@@ -109,7 +100,7 @@ contract StakingContract is
      */
     function unstake(
         uint256 tokensToUnstake
-    ) public override nonReentrant returns (bool) {
+    ) public virtual override nonReentrant returns (bool) {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
         require(
             _players[_msgSender()].tokensStaked >= tokensToUnstake,
@@ -127,7 +118,7 @@ contract StakingContract is
      */
     function withdrawRewards(
         uint256 amount
-    ) public override nonReentrant returns (bool) {
+    ) public virtual override nonReentrant returns (bool) {
         require(amount > 0, "amount must be > 0");
         _withdrawRewards(_msgSender(), amount);
         return true;
@@ -138,14 +129,20 @@ contract StakingContract is
      */
     function payoutInfo(
         uint256 id
-    ) public view override returns (Payouts memory) {
+    ) public view virtual override returns (Payouts memory) {
         return _payouts[id];
     }
 
     /**
      * @notice returns total amount of tokens staked
      */
-    function totalCurrentlyStaked() public view override returns (uint256) {
+    function totalCurrentlyStaked()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _totalCurrentlyStaked;
     }
 
@@ -154,8 +151,16 @@ contract StakingContract is
      */
     function withdrawableEth(
         address account
-    ) public view override returns (uint256) {
+    ) public view virtual override returns (uint256) {
         return _accEth(account) - _players[account].etherWithdrawn;
+    }
+
+    /**
+     * @notice push lotto payout data to array
+     */
+    function _receivedLottoPayout() internal virtual onlyOwner returns (bool) {
+        _payouts.push(Payouts(msg.value, _totalCurrentlyStaked, block.number));
+        return true;
     }
 
     /**
@@ -163,7 +168,7 @@ contract StakingContract is
      * @param tokensToStake tokens to stake
      * @param staker tokens to unstake
      */
-    function _stake(uint256 tokensToStake, address staker) internal {
+    function _stake(uint256 tokensToStake, address staker) internal virtual {
         unchecked {
             _totalCurrentlyStaked += tokensToStake;
             _players[staker].tokensStaked += tokensToStake;
@@ -178,7 +183,10 @@ contract StakingContract is
      * @param tokensToUnstake tokens to unstake
      * @param staker tokens to unstake
      */
-    function _unstake(uint256 tokensToUnstake, address staker) internal {
+    function _unstake(
+        uint256 tokensToUnstake,
+        address staker
+    ) internal virtual {
         unchecked {
             _players[staker].tokensStaked -= tokensToUnstake;
             _totalCurrentlyStaked -= tokensToUnstake;
@@ -193,7 +201,10 @@ contract StakingContract is
      * @param account to withdraw eth
      * @param amount tokens to unstake
      */
-    function _withdrawRewards(address account, uint256 amount) internal {
+    function _withdrawRewards(
+        address account,
+        uint256 amount
+    ) internal virtual {
         unchecked {
             uint256 eth = withdrawableEth(account);
             require(amount <= eth, "amount > available eth");
@@ -316,7 +327,5 @@ contract StakingContract is
     // //     _stake(amount, from);
     // // }
 
-    // /* solhint-disable no-empty-blocks*/
-    // receive() external payable {}
-    // /* solhint-enable ordering, no-empty-blocks */
+    /* solhint-enable ordering */
 }

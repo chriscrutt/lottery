@@ -14,11 +14,11 @@ TODO
 [x] add NatSpec
 [ ] make some internal/private functions public?
 [ ] emit something if beneficiary was swapped/added/removed. Do something if beneficiary doesn't exist
-
+[x] remove beneficiary revert statement wrong and swap
 
  */
 
-abstract contract LottoGratuity is BasicLotto {
+contract LottoGratuity is BasicLotto {
     using Math for uint256;
 
     // beneficiary data
@@ -49,14 +49,23 @@ abstract contract LottoGratuity is BasicLotto {
         uint256 lottoLength_,
         uint256 securityBeforeDraw_,
         uint256 securityAfterDraw_
-    ) BasicLotto(minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
+    )
+        BasicLotto(
+            minPot_,
+            lottoLength_,
+            securityBeforeDraw_,
+            securityAfterDraw_
+        )
+    {
         uint256 len = beneficiaries.length;
         require(len == gratuityTimes1000.length, "array length mismatch");
         for (uint256 i = 0; i < len; ++i) {
             require(beneficiaries[i] != address(0), "sending to 0 addy");
             _totalGratuity += gratuityTimes1000[i];
             require(_totalGratuity < 1000, "gratuity is (greater than) 100%");
-            _beneficiaries.push(Beneficiary(beneficiaries[i], gratuityTimes1000[i]));
+            _beneficiaries.push(
+                Beneficiary(beneficiaries[i], gratuityTimes1000[i])
+            );
         }
     }
 
@@ -83,7 +92,7 @@ abstract contract LottoGratuity is BasicLotto {
                 _totalGratuity -= _beneficiaries[i].gratuity;
                 _beneficiaries[i] = _beneficiaries[--len];
                 _beneficiaries.pop();
-                break;
+                return;
             }
         }
         revert("beneficiary doesn't exist");
@@ -96,7 +105,13 @@ abstract contract LottoGratuity is BasicLotto {
     function _payout(uint256 amount) internal virtual override {
         uint256 len = _beneficiaries.length;
         for (uint256 i = 0; i < len; ++i) {
-            payable(_beneficiaries[i].beneficiary).transfer(amount.mulDiv(_beneficiaries[i].gratuity, 1000));
+            // payable(_beneficiaries[i].beneficiary).transfer(
+            //     amount.mulDiv(_beneficiaries[i].gratuity, 1000)
+            // );
+            (bool sent, ) = payable(_beneficiaries[i].beneficiary).call{
+                value: amount.mulDiv(_beneficiaries[i].gratuity, 1000)
+            }("");
+            require(sent, "Failed to send Ether");
         }
         super._payout(address(this).balance);
     }
@@ -107,19 +122,28 @@ abstract contract LottoGratuity is BasicLotto {
      * @param newBeneficiary to be added
      * @param newGratuity to be given
      */
-    function _swapBeneficiary(address oldBeneficiary, address newBeneficiary, uint256 newGratuity) internal {
+    function _swapBeneficiary(
+        address oldBeneficiary,
+        address newBeneficiary,
+        uint256 newGratuity
+    ) internal {
         require(newBeneficiary != address(0), "can't be 0 address");
         uint256 len = _beneficiaries.length;
         for (uint256 i = 0; i < len; ++i) {
             if (_beneficiaries[i].beneficiary == oldBeneficiary) {
                 _totalGratuity -= _beneficiaries[i].gratuity;
+                require(
+                    _totalGratuity + newGratuity < 1000,
+                    "gratuity is (greater than) 100%"
+                );
                 _beneficiaries[i].beneficiary = newBeneficiary;
                 _beneficiaries[i].gratuity = newGratuity;
-                require(_totalGratuity + newGratuity < 1000, "gratuity is (greater than) 100%");
+
                 _totalGratuity += newGratuity;
-                break;
+                return;
             }
         }
+        revert("beneficiary doesn't exist");
     }
 
     /**
@@ -127,15 +151,22 @@ abstract contract LottoGratuity is BasicLotto {
      * @param beneficiary to be removed
      * @param newGratuity to be given
      */
-    function _changeGratuity(address beneficiary, uint256 newGratuity) internal {
+    function _changeGratuity(
+        address beneficiary,
+        uint256 newGratuity
+    ) internal {
         uint256 len = _beneficiaries.length;
         for (uint256 i = 0; i < len; ++i) {
             if (_beneficiaries[i].beneficiary == beneficiary) {
                 _totalGratuity -= _beneficiaries[i].gratuity;
-                require(_totalGratuity + newGratuity < 1000, "gratuity is (greater than) 100%");
+                require(
+                    _totalGratuity + newGratuity < 1000,
+                    "gratuity is (greater than) 100%"
+                );
                 _totalGratuity += newGratuity;
-                break;
+                return;
             }
         }
+        revert("beneficiary doesn't exist");
     }
 }
