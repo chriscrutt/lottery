@@ -1,21 +1,36 @@
 # print((60*80*24*365.25*20/12))
 
-import sha3
+# yo = 60*80*24*365.25*20/12
+# total = 0
+# for i in range(70128001):
+#     total += i * 10**10
 
-def read_pdf_file(file_path):
-    with open(file_path, 'rb') as f:
-        file_data = f.read()
-    return file_data
+# print(total)
 
-def compute_keccak256(file_data):
-    keccak_hash = sha3.keccak_256()
-    keccak_hash.update(file_data)
-    return keccak_hash.hexdigest()
+# 2458968156936000
+# 10000000123456789012345678
+# 24589682270640000000000000
 
-# Replace 'path/to/your/pdf_file.pdf' with the path to the PDF file you want to hash
-pdf_file_path = '/Users/christophercruttenden/Downloads/shots.pdf'
-pdf_data = read_pdf_file(pdf_file_path)
-hash_value = compute_keccak256(pdf_data)
+# print((70128001) * (70128000) / 2)
+# # (upper - lower + 1) * (first + last number) / 2
+# # (this block - last block + 1) * (70128000 - (last block - first block) + 70128000 - (this block - first block))
+# # (150 - 100 + 1)               * (70128000 - (100 - 50)                 + 70128000 - (150 - 50))
+# # 51 * (70128000-50 + 70128000-100)
+# print(51 * (70128000-50 + 70128000-100) / 2 * 10**10)
+# total = 0
+# for j in range(70128000-100, 70128000-50+1):
+#     total += j * 10**10
+# print(total)
 
-print(pdf_data)
-print("Keccak256 hash of the PDF file:", hash_value)
+
+blocknumber = 150
+lastrewardblock = 100
+startingblock = 50
+print((blocknumber - lastrewardblock + 1) *
+      (70128000 - (lastrewardblock - startingblock) + 70128000 - (blocknumber - startingblock)) / 2)
+
+print((blocknumber - lastrewardblock + 1) *
+      (2 * 70128000 - lastrewardblock - blocknumber + 2 * startingblock) / 2)
+
+print((blocknumber - lastrewardblock + 1) *
+      (2 * (70128000 + startingblock) - lastrewardblock - blocknumber) / 2)

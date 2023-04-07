@@ -21,5 +21,3 @@ pragma solidity ^0.8.0;
 //         uint256[] memory gratuityTimes1000
 //     ) LottoDAO("Reward Token", "RTN", 21e18, 250, 999, 1000, beneficiaries, gratuityTimes1000, 1000, 6, 1, 1) {}
 // }
-
-

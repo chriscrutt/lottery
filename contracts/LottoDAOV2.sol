@@ -4,8 +4,7 @@ pragma solidity ^0.8.0;
 import "./LottoGratuityV2.sol";
 import "./StakingContract.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
-import "erc-payable-token/contracts/token/ERC1363/ERC1363.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
 
@@ -24,13 +23,13 @@ TODO
 
  */
 
-contract LottoRewardsToken is ERC1363 {
+contract LottoRewardsToken is ERC20 {
     /**
      * @dev owners are "default operators" which pretty much just means they have authority to spend anyone's tokens
      * @param name the name of the reward token
      * @param symbol the symbol of the reward token
      */
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
 }
 
 /**
@@ -42,13 +41,14 @@ abstract contract LottoDAO is LottoGratuity {
     // mainly for mulDiv() because it is cheaper somehow
     using Math for uint256;
 
+    uint256 private _startingBlock;
+    uint256 private _lastRewardBlock;
+    uint256 private _totalPlannedBlocks;
+
     // for the ERC777 that will be the DAO token
     LottoRewardsToken private _lottoRewardsToken;
     // allows people to stake the DAO token to receive ether rewards
     StakingContract private _stakingContract;
-
-    // current DAO tokens minted per block after the lottery has concluded
-    uint256 private _rewardsPerBlock;
 
     // what gratuity the DAO/staking contract will be receiving per lottery payout
     uint256 private _daoGratuity;
@@ -60,7 +60,7 @@ abstract contract LottoDAO is LottoGratuity {
      * it also initializes LottoGratuity which in turn initializes BasicLotto
      * @param rewardTokenName name of DAO token
      * @param rewardTokenSymbol symbol of DAO token
-     * @param rewardsPerBlock rewards per block
+     * @param totalPlannedBlocks asdf
      * @param beneficiaries addresses that will be earning a percentage of the pot each payout
      * @param gratuityTimes1000 gratuity per beneficiary so that 10% = 0.10 but * 1000 = 100
      * @param daoGratuity gratuity the DAO/staking contract should receive
@@ -72,7 +72,7 @@ abstract contract LottoDAO is LottoGratuity {
     constructor(
         string memory rewardTokenName,
         string memory rewardTokenSymbol,
-        uint256 rewardsPerBlock,
+        uint256 totalPlannedBlocks,
         uint256 daoGratuity,
         address[] memory beneficiaries,
         uint256[] memory gratuityTimes1000,
@@ -80,26 +80,16 @@ abstract contract LottoDAO is LottoGratuity {
         uint256 lottoLength_,
         uint256 securityBeforeDraw_,
         uint256 securityAfterDraw_
-    )
-        LottoGratuity(
-            beneficiaries,
-            gratuityTimes1000,
-            minPot_,
-            lottoLength_,
-            securityBeforeDraw_,
-            securityAfterDraw_
-        )
-    {
+    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
-        _lottoRewardsToken = new LottoRewardsToken(
-            rewardTokenName,
-            rewardTokenSymbol
-        );
+        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
         // _stakingContract = new StakingContract(address(_lottoRewardsToken));
-        _rewardsPerBlock = rewardsPerBlock;
+        _totalPlannedBlocks = totalPlannedBlocks;
         require(daoGratuity > 0, "DAO must get some reward");
         // _addBeneficiary(address(_stakingContract), daoGratuity);
+
+        _startingBlock = block.number;
     }
 
     // /**
@@ -125,14 +115,23 @@ abstract contract LottoDAO is LottoGratuity {
     //     _start(blockDif);
     // }
 
-    function _payout(uint256 amount) internal virtual override {}
-
-    // solhint-disable-next-line no-empty-blocks
-    function _calculateTokenReward() internal virtual returns (uint256) {}
+    function calculateTokenReward() public virtual returns (uint256 blockRewards) {
+        if (_totalPlannedBlocks > block.number - _startingBlock) {
+            unchecked {
+                blockRewards =
+                    (((block.number - _lastRewardBlock + 1) *
+                        (2 * (_totalPlannedBlocks + _startingBlock) - _lastRewardBlock - block.number)) / 2) *
+                    10 ** 10;
+            }
+        } else {
+            blockRewards = block.number - _lastRewardBlock;
+        }
+        _lastRewardBlock = block.number;
+    }
 
     // /**
     //  * @notice starts the lottery after payout
-    //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is (re)started
+    //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is started
     //  * it does this by iterating through each block since the lottery ended and then finally updates state variable
     //  * @param blockDif is used to calculate the amount of DAO tokens to mint.
     //  */

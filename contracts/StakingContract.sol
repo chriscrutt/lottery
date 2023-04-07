@@ -31,12 +31,7 @@ TODO
 
 
  */
-contract StakingContract is
-    Context,
-    ReentrancyGuard,
-    Ownable,
-    IStakingContract
-{
+contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract {
     using Math for uint256;
     // using SafeERC20 for IERC20;
 
@@ -82,9 +77,7 @@ contract StakingContract is
      * @notice stakes tokens
      * @param tokensToStake tokens to stake
      */
-    function stake(
-        uint256 tokensToStake
-    ) public virtual override nonReentrant returns (bool) {
+    function stake(uint256 tokensToStake) public virtual override nonReentrant returns (bool) {
         require(tokensToStake > 0, "staked tokens must be > 0");
 
         // stakingToken.safeTransferFrom(
@@ -98,14 +91,9 @@ contract StakingContract is
      * @notice unstakes tokens
      * @param tokensToUnstake tokens to unstake
      */
-    function unstake(
-        uint256 tokensToUnstake
-    ) public virtual override nonReentrant returns (bool) {
+    function unstake(uint256 tokensToUnstake) public virtual override nonReentrant returns (bool) {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
-        require(
-            _players[_msgSender()].tokensStaked >= tokensToUnstake,
-            "unstaking too many tokens"
-        );
+        require(_players[_msgSender()].tokensStaked >= tokensToUnstake, "unstaking too many tokens");
         _unstake(tokensToUnstake, _msgSender());
         // stakingToken.safeTransfer(_msgSender(), tokensToUnstake);
         stakingToken.transfer(_msgSender(), tokensToUnstake);
@@ -116,9 +104,7 @@ contract StakingContract is
      * @notice withdraws available ether rewards
      * @param amount ether to claim
      */
-    function withdrawRewards(
-        uint256 amount
-    ) public virtual override nonReentrant returns (bool) {
+    function withdrawRewards(uint256 amount) public virtual override nonReentrant returns (bool) {
         require(amount > 0, "amount must be > 0");
         _withdrawRewards(_msgSender(), amount);
         return true;
@@ -127,38 +113,28 @@ contract StakingContract is
     /**
      * @notice returns array of lottery payouts
      */
-    function payoutInfo(
-        uint256 id
-    ) public view virtual override returns (Payouts memory) {
+    function payoutInfo(uint256 id) public view virtual override returns (Payouts memory) {
         return _payouts[id];
     }
 
     /**
      * @notice returns total amount of tokens staked
      */
-    function totalCurrentlyStaked()
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function totalCurrentlyStaked() public view virtual override returns (uint256) {
         return _totalCurrentlyStaked;
     }
 
     /**
      * @notice returns total amount of ether available to withdraw
      */
-    function withdrawableEth(
-        address account
-    ) public view virtual override returns (uint256) {
+    function withdrawableEth(address account) public view virtual override returns (uint256) {
         return _accEth(account) - _players[account].etherWithdrawn;
     }
 
     /**
      * @notice push lotto payout data to array
      */
-    function _receivedLottoPayout() internal virtual onlyOwner returns (bool) {
+    function _receivedLottoPayout() internal virtual returns (bool) {
         _payouts.push(Payouts(msg.value, _totalCurrentlyStaked, block.number));
         return true;
     }
@@ -173,9 +149,7 @@ contract StakingContract is
             _totalCurrentlyStaked += tokensToStake;
             _players[staker].tokensStaked += tokensToStake;
         }
-        _players[staker].snapshots.push(
-            Snapshot(block.number, _players[staker].tokensStaked)
-        );
+        _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
     }
 
     /**
@@ -183,17 +157,12 @@ contract StakingContract is
      * @param tokensToUnstake tokens to unstake
      * @param staker tokens to unstake
      */
-    function _unstake(
-        uint256 tokensToUnstake,
-        address staker
-    ) internal virtual {
+    function _unstake(uint256 tokensToUnstake, address staker) internal virtual {
         unchecked {
             _players[staker].tokensStaked -= tokensToUnstake;
             _totalCurrentlyStaked -= tokensToUnstake;
         }
-        _players[staker].snapshots.push(
-            Snapshot(block.number, _players[staker].tokensStaked)
-        );
+        _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
     }
 
     /**
@@ -201,19 +170,14 @@ contract StakingContract is
      * @param account to withdraw eth
      * @param amount tokens to unstake
      */
-    function _withdrawRewards(
-        address account,
-        uint256 amount
-    ) internal virtual {
+    function _withdrawRewards(address account, uint256 amount) internal virtual {
         unchecked {
             uint256 eth = withdrawableEth(account);
             require(amount <= eth, "amount > available eth");
 
             if (amount == eth) {
                 delete _players[account].snapshots;
-                _players[account].snapshots.push(
-                    Snapshot(block.number, _players[account].tokensStaked)
-                );
+                _players[account].snapshots.push(Snapshot(block.number, _players[account].tokensStaked));
                 _players[account].etherWithdrawn = 0;
             } else {
                 _players[account].etherWithdrawn += amount;
@@ -233,27 +197,15 @@ contract StakingContract is
         // make special case for first staked?
 
         // find startingPoint of the first lottery who's timestamp is after their first transaction
-        uint256 startingPoint = _binarySearchUpExclusive(
-            lottoHistory,
-            stakeHistory[0].blockNumber,
-            0
-        );
+        uint256 startingPoint = _binarySearchUpExclusive(lottoHistory, stakeHistory[0].blockNumber, 0);
 
         // find the transaction that is closest to the start of that lottery
-        uint256 txNum = _binarySearchDownExclusive(
-            stakeHistory,
-            lottoHistory[startingPoint].blockNumber,
-            0
-        );
+        uint256 txNum = _binarySearchDownExclusive(stakeHistory, lottoHistory[startingPoint].blockNumber, 0);
         require(txNum < type(uint256).max, "tx not found");
 
         // iterate through the lotteries
         while (startingPoint < len) {
-            txNum = _binarySearchDownExclusive(
-                stakeHistory,
-                lottoHistory[startingPoint].blockNumber,
-                txNum
-            );
+            txNum = _binarySearchDownExclusive(stakeHistory, lottoHistory[startingPoint].blockNumber, txNum);
 
             // calculate the amount of Ether accumulated during the current lottery
             eth += lottoHistory[startingPoint].amount.mulDiv(

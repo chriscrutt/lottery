@@ -13,6 +13,7 @@ TODO
 [x] add NatSpec
 [x] make some internal functions public?
 [-] should lottery end on block or block after
+[ ] think about openzeppelin's Timer contract
 
 
  */

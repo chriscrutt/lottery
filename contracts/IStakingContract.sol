@@ -13,7 +13,6 @@ struct Payouts {
  * @dev Interface of StakingContract
  */
 interface IStakingContract {
-
     receive() external payable;
 
     /**
@@ -49,5 +48,4 @@ interface IStakingContract {
      * @notice returns total amount of ether available to withdraw
      */
     function withdrawableEth(address account) external view returns (uint256);
-
 }
