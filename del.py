@@ -23,9 +23,9 @@
 # print(total)
 
 
-blocknumber = 150
-lastrewardblock = 100
-startingblock = 50
+blocknumber = 151
+lastrewardblock = 150
+startingblock = 150
 print((blocknumber - lastrewardblock + 1) *
       (70128000 - (lastrewardblock - startingblock) + 70128000 - (blocknumber - startingblock)) / 2)
 

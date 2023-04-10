@@ -17,7 +17,7 @@ TODO
 [ ] make some internal/private functions public?
 [ ] make sure daoGratuity also isn't 1000
 [ ] make it so all token transfers potentially can have callbacks when sent to smart contracts?
-[ ] back to erc20
+[x] back to erc20
 [ ] better payout gratuity
 [ ] tf up with _start
 
@@ -52,8 +52,6 @@ abstract contract LottoDAO is LottoGratuity {
 
     // what gratuity the DAO/staking contract will be receiving per lottery payout
     uint256 private _daoGratuity;
-
-    address[] private _owner = new address[](1);
 
     /**
      * @dev sets up EVERYTHING. includes info that'll make the DAO token and staking contract
@@ -90,6 +88,7 @@ abstract contract LottoDAO is LottoGratuity {
         // _addBeneficiary(address(_stakingContract), daoGratuity);
 
         _startingBlock = block.number;
+        _lastRewardBlock = block.number;
     }
 
     // /**
@@ -116,17 +115,21 @@ abstract contract LottoDAO is LottoGratuity {
     // }
 
     function calculateTokenReward() public virtual returns (uint256 blockRewards) {
-        if (_totalPlannedBlocks > block.number - _startingBlock) {
+        uint256 blockNumber_ = block.number;
+        uint256 totalPlannedBlocks_ = _totalPlannedBlocks;
+        uint256 startingBlock_ = _startingBlock;
+        uint256 lastRewardBlock_ = _lastRewardBlock;
+        _lastRewardBlock = blockNumber_;
+        if (totalPlannedBlocks_ > blockNumber_ - startingBlock_) {
             unchecked {
                 blockRewards =
-                    (((block.number - _lastRewardBlock + 1) *
-                        (2 * (_totalPlannedBlocks + _startingBlock) - _lastRewardBlock - block.number)) / 2) *
+                    (((blockNumber_ - lastRewardBlock_) *
+                        (2 * (totalPlannedBlocks_ + startingBlock_) - lastRewardBlock_ - blockNumber_)) / 2) *
                     10 ** 10;
             }
         } else {
-            blockRewards = block.number - _lastRewardBlock;
+            blockRewards = blockNumber_ - lastRewardBlock_;
         }
-        _lastRewardBlock = block.number;
     }
 
     // /**
