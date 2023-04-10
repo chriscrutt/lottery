@@ -41,6 +41,8 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     // what the ending block will be
     uint64 private _lottoTimer;
 
+    bool private _paying;
+
     // on lottery payout
     event Payout(address to, uint256 amount);
 
@@ -64,24 +66,18 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     /**
      * @notice buy tickets
      */
-    function buyTickets() public payable virtual nonReentrant {
+    function buyTickets() public payable virtual returns (bool) {
         require(block.number <= _lottoTimer || address(this).balance <= _minPot, "lottery is over");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
+        return true;
     }
 
     /**
      * @notice see blocks to go by before drawing winner for security reasons
      */
-    function blocksBeforeDraw() public view returns (uint256) {
-        return _beforeDraw;
-    }
-
-    /**
-     * @notice see blocks to go by before paying winner for security reasons
-     */
-    function blocksAfterDraw() public view returns (uint256) {
-        return _afterDraw;
+    function payoutAvailableOnBlock() public view returns (uint256) {
+        return _lottoTimer + _beforeDraw + _afterDraw;
     }
 
     /**
@@ -99,13 +95,6 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     }
 
     /**
-     * @notice length of each round in blocks
-     */
-    function roundLength() public view virtual returns (uint256) {
-        return _roundLength;
-    }
-
-    /**
      * @notice what block number will the lotto finish on
      */
     function lottoDeadline() public view virtual returns (uint64) {
@@ -119,6 +108,14 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         return block.number;
     }
 
+    function payout() public virtual nonReentrant returns (bool) {
+        require(!_paying, "in the middle of paying");
+        _paying = true;
+        _payout(address(this).balance);
+        _paying = false;
+        return true;
+    }
+
     /**
      * @dev calculates winning ticket, finds the ticket owner, resets lottery, pays out winner
      * @param amount to be paid out to winner
@@ -130,7 +127,9 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         _lottoTimer = uint64(block.number + _roundLength);
         // _logRound(winner, amount); instead below
         _rounds.push(Round(winner, amount));
-        payable(winner).transfer(amount);
+        (bool sent, ) = payable(winner).call{ value: amount }("");
+        require(sent, "Failed to send Ether");
+        // payable(winner).transfer(amount);
         emit Payout(winner, amount);
     }
 
@@ -138,9 +137,9 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
      * @dev calculates winning ticket using hashing blockhash, prevrandao, and number of tickets
      */
     function _calculateWinningTicket() internal view returns (uint256) {
-        require(_lottoTimer + _beforeDraw < block.number, "wait for finality");
+        require(_lottoTimer + _beforeDraw + _afterDraw < block.number, "wait for finality");
         return
-            uint256(keccak256(abi.encodePacked(blockhash(_lottoTimer + _afterDraw), address(this).balance))) %
+            uint256(keccak256(abi.encodePacked(blockhash(_lottoTimer + _beforeDraw), address(this).balance))) %
             address(this).balance;
     }
 }

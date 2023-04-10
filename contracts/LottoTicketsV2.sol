@@ -91,6 +91,7 @@ contract LottoTicketsV2 {
     function _mintTickets(address to, uint256 amount) internal virtual {
         _ticketBundles.push(TicketBundle(_ticketNum, _ticketNum + amount, to));
         _ticketNum += amount;
+        _allTimeTicketNum += amount;
         if (_playerInfo[to].mostRecentRound == _roundNumber) {
             _playerInfo[to].alltimeTickets += amount;
             _playerInfo[to].currentTickets += amount;
@@ -107,7 +108,6 @@ contract LottoTicketsV2 {
      */
     function _reset() internal virtual {
         delete _ticketBundles;
-        _allTimeTicketNum += _ticketNum;
         _ticketNum = 0;
         ++_roundNumber;
     }

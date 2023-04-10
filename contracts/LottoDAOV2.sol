@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "./LottoGratuityV2.sol";
 import "./StakingContract.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
@@ -91,6 +90,28 @@ abstract contract LottoDAO is LottoGratuity {
         _lastRewardBlock = block.number;
     }
 
+    function calculateTokenReward() public virtual returns (uint256) {
+        uint256 blockRewards;
+        uint256 blockNumber_ = block.number;
+        uint256 totalPlannedBlocks_ = _totalPlannedBlocks;
+        uint256 startingBlock_ = _startingBlock;
+        uint256 lastRewardBlock_ = _lastRewardBlock;
+        _lastRewardBlock = blockNumber_;
+        if (totalPlannedBlocks_ > blockNumber_ - startingBlock_) {
+            unchecked {
+                blockRewards =
+                    (((blockNumber_ - lastRewardBlock_) *
+                        (2 * (totalPlannedBlocks_ + startingBlock_) - lastRewardBlock_ - blockNumber_)) / 2) *
+                    10 ** 10;
+            }
+        } else {
+            blockRewards = blockNumber_ - lastRewardBlock_;
+        }
+        return blockRewards;
+    }
+
+
+
     // /**
     //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
     //  * @dev makes sure the lottery timer is over and balance reached the minimum pot.
@@ -114,24 +135,7 @@ abstract contract LottoDAO is LottoGratuity {
     //     _start(blockDif);
     // }
 
-    function calculateTokenReward() public virtual returns (uint256 blockRewards) {
-        uint256 blockNumber_ = block.number;
-        uint256 totalPlannedBlocks_ = _totalPlannedBlocks;
-        uint256 startingBlock_ = _startingBlock;
-        uint256 lastRewardBlock_ = _lastRewardBlock;
-        _lastRewardBlock = blockNumber_;
-        if (totalPlannedBlocks_ > blockNumber_ - startingBlock_) {
-            unchecked {
-                blockRewards =
-                    (((blockNumber_ - lastRewardBlock_) *
-                        (2 * (totalPlannedBlocks_ + startingBlock_) - lastRewardBlock_ - blockNumber_)) / 2) *
-                    10 ** 10;
-            }
-        } else {
-            blockRewards = blockNumber_ - lastRewardBlock_;
-        }
-    }
-
+    
     // /**
     //  * @notice starts the lottery after payout
     //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is started
