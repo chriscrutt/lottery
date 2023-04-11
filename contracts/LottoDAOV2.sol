@@ -112,28 +112,28 @@ abstract contract LottoDAO is LottoGratuity {
 
 
 
-    // /**
-    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
-    //  * @dev makes sure the lottery timer is over and balance reached the minimum pot.
-    //  * uses some internal functions as we do not have access to private variables
-    //  */
-    // function payoutAndRestart() public virtual nonReentrant {
-    //     require(
-    //         lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() <
-    //             block.number,
-    //         "wait for finality"
-    //     );
-    //     require(
-    //         address(this).balance >= minimumPot(),
-    //         "minimum pot hasn't been reached"
-    //     );
-    //     uint256 blockDif = block.number -
-    //         (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
-    //     uint256 balance = address(this).balance;
-    //     _payout(balance);
-    //     _stakingContract.receivedPayout(_daoGratuity * balance);
-    //     _start(blockDif);
-    // }
+    /**
+     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
+     * @dev makes sure the lottery timer is over and balance reached the minimum pot.
+     * uses some internal functions as we do not have access to private variables
+     */
+    function payoutAndRestart() public virtual nonReentrant {
+        require(
+            lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() <
+                block.number,
+            "wait for finality"
+        );
+        require(
+            address(this).balance >= minimumPot(),
+            "minimum pot hasn't been reached"
+        );
+        uint256 blockDif = block.number -
+            (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
+        uint256 balance = address(this).balance;
+        _payout(balance);
+        _stakingContract.receivedPayout(_daoGratuity * balance);
+        _start(blockDif);
+    }
 
     
     // /**
