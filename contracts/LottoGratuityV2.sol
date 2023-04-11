@@ -19,7 +19,7 @@ TODO
 
  */
 
-contract LottoGratuity is BasicLotto {
+abstract contract LottoGratuity is BasicLotto {
     using Math for uint256;
 
     // beneficiary data
@@ -38,19 +38,11 @@ contract LottoGratuity is BasicLotto {
      * @notice sets up lottery with beneficiaries and starts it!
      * @param beneficiaries to get mulla
      * @param gratuityTimes1000 for each beneficiary
-     * @param minPot_ minimum pot for lottery to end
-     * @param lottoLength_ minimum block length for lottery to end
-     * @param securityBeforeDraw_ blocks to wait before drawing for security
-     * @param securityAfterDraw_ blocks to wait before payout for security
      */
     constructor(
         address[] memory beneficiaries,
-        uint256[] memory gratuityTimes1000,
-        uint256 minPot_,
-        uint256 lottoLength_,
-        uint256 securityBeforeDraw_,
-        uint256 securityAfterDraw_
-    ) BasicLotto(minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
+        uint256[] memory gratuityTimes1000
+    ) {
         uint256 len = beneficiaries.length;
         require(len == gratuityTimes1000.length, "array length mismatch");
         for (uint256 i = 0; i < len; ++i) {

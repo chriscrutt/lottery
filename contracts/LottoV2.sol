@@ -13,7 +13,7 @@ TODO
 [x] add NatSpec
 [x] make some internal functions public?
 [-] should lottery end on block or block after
-[ ] think about openzeppelin's Timer contract
+[x] think about openzeppelin's Timer contract - nope
 
 
  */
@@ -40,8 +40,6 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
 
     // what the ending block will be
     uint64 private _lottoTimer;
-
-    bool private _paying;
 
     // on lottery payout
     event Payout(address to, uint256 amount);
@@ -109,10 +107,9 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     }
 
     function payout() public virtual nonReentrant returns (bool) {
-        require(!_paying, "in the middle of paying");
-        _paying = true;
-        _payout(address(this).balance);
-        _paying = false;
+        uint256 balance = address(this).balance;
+        require(balance >= _minPot, "minimum pot hasn't been reached");
+        _payout(balance);
         return true;
     }
 

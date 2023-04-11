@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./LottoGratuityV2.sol";
 import "./StakingContract.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
 
@@ -22,13 +23,17 @@ TODO
 
  */
 
-contract LottoRewardsToken is ERC20 {
+contract LottoRewardsToken is ERC20, Ownable {
     /**
      * @dev owners are "default operators" which pretty much just means they have authority to spend anyone's tokens
      * @param name the name of the reward token
      * @param symbol the symbol of the reward token
      */
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
 }
 
 /**
@@ -36,7 +41,7 @@ contract LottoRewardsToken is ERC20 {
  * @dev an itteration of LottoGratuity that allows for a DAO token to be minted when the lottery is restarted
  * they can then stake the tokens in the StakingContract and earn ether rewards that get sent via a specified gratuity
  */
-abstract contract LottoDAO is LottoGratuity {
+contract LottoDAO is LottoGratuity {
     // mainly for mulDiv() because it is cheaper somehow
     using Math for uint256;
 
@@ -110,32 +115,17 @@ abstract contract LottoDAO is LottoGratuity {
         return blockRewards;
     }
 
-
-
     /**
      * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
      * @dev makes sure the lottery timer is over and balance reached the minimum pot.
      * uses some internal functions as we do not have access to private variables
      */
-    function payoutAndRestart() public virtual nonReentrant {
-        require(
-            lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw() <
-                block.number,
-            "wait for finality"
-        );
-        require(
-            address(this).balance >= minimumPot(),
-            "minimum pot hasn't been reached"
-        );
-        uint256 blockDif = block.number -
-            (lottoDeadline() + blocksBeforeDraw() + blocksAfterDraw());
-        uint256 balance = address(this).balance;
-        _payout(balance);
-        _stakingContract.receivedPayout(_daoGratuity * balance);
-        _start(blockDif);
+    function payout() public virtual override nonReentrant returns (bool) {
+        super.payout();
+        _lottoRewardsToken.mint(_msgSender(), calculateTokenReward());
+        return true;
     }
 
-    
     // /**
     //  * @notice starts the lottery after payout
     //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is started
