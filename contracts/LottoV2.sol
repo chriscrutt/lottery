@@ -39,7 +39,7 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     uint256 private _afterDraw;
 
     // what the ending block will be
-    uint64 private _lottoTimer;
+    uint256 private _lottoTimer;
 
     // on lottery payout
     event Payout(address to, uint256 amount);
@@ -58,7 +58,7 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         _beforeDraw = securityBeforeDraw_;
         _afterDraw = securityAfterDraw_;
         // _endingBlock = block.number + lottoLength_;
-        _lottoTimer = uint64(block.number + lottoLength_);
+        _lottoTimer = block.number + lottoLength_;
     }
 
     /**
@@ -95,7 +95,7 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     /**
      * @notice what block number will the lotto finish on
      */
-    function lottoDeadline() public view virtual returns (uint64) {
+    function lottoDeadline() public view virtual returns (uint256) {
         return _lottoTimer;
     }
 
@@ -106,11 +106,19 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         return block.number;
     }
 
+    function roundLength() public view virtual returns (uint256) {
+        return _roundLength;
+    }
+
     function payout() public virtual nonReentrant returns (bool) {
         uint256 balance = address(this).balance;
         require(balance >= _minPot, "minimum pot hasn't been reached");
         _payout(balance);
         return true;
+    }
+
+    function _updateLottoTimer(uint256 newTime) internal virtual {
+        _lottoTimer = newTime;
     }
 
     /**
@@ -121,7 +129,6 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         uint256 winningTicket = _calculateWinningTicket();
         address winner = _findTicketOwner(winningTicket);
         _reset();
-        _lottoTimer = uint64(block.number + _roundLength);
         // _logRound(winner, amount); instead below
         _rounds.push(Round(winner, amount));
         (bool sent, ) = payable(winner).call{ value: amount }("");
