@@ -110,11 +110,10 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         return _roundLength;
     }
 
-    function payout() public virtual nonReentrant returns (bool) {
+    function payout() public virtual nonReentrant {
         uint256 balance = address(this).balance;
         require(balance >= _minPot, "minimum pot hasn't been reached");
         _payout(balance);
-        return true;
     }
 
     function _updateLottoTimer(uint256 newTime) internal virtual {

@@ -68,46 +68,42 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
         // _payouts.push();
     }
 
-    receive() external payable virtual override nonReentrant onlyOwner {
-        bool received = _receivedLottoPayout();
-        require(received, "failed to add to array");
+    receive() external payable virtual override onlyOwner {
+        _receivedLottoPayout();
     }
 
     /**
      * @notice stakes tokens
      * @param tokensToStake tokens to stake
      */
-    function stake(uint256 tokensToStake) public virtual override nonReentrant returns (bool) {
+    function stake(uint256 tokensToStake) public virtual override nonReentrant {
         require(tokensToStake > 0, "staked tokens must be > 0");
 
         // stakingToken.safeTransferFrom(
         stakingToken.transferFrom(_msgSender(), address(this), tokensToStake);
 
         _stake(tokensToStake, _msgSender());
-        return true;
     }
 
     /**
      * @notice unstakes tokens
      * @param tokensToUnstake tokens to unstake
      */
-    function unstake(uint256 tokensToUnstake) public virtual override nonReentrant returns (bool) {
+    function unstake(uint256 tokensToUnstake) public virtual override nonReentrant {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
         require(_players[_msgSender()].tokensStaked >= tokensToUnstake, "unstaking too many tokens");
         _unstake(tokensToUnstake, _msgSender());
         // stakingToken.safeTransfer(_msgSender(), tokensToUnstake);
         stakingToken.transfer(_msgSender(), tokensToUnstake);
-        return true;
     }
 
     /**
      * @notice withdraws available ether rewards
      * @param amount ether to claim
      */
-    function withdrawRewards(uint256 amount) public virtual override nonReentrant returns (bool) {
+    function withdrawRewards(uint256 amount) public virtual override nonReentrant {
         require(amount > 0, "amount must be > 0");
         _withdrawRewards(_msgSender(), amount);
-        return true;
     }
 
     /**
@@ -134,9 +130,8 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
     /**
      * @notice push lotto payout data to array
      */
-    function _receivedLottoPayout() internal virtual returns (bool) {
+    function _receivedLottoPayout() internal virtual {
         _payouts.push(Payouts(msg.value, _totalCurrentlyStaked, block.number));
-        return true;
     }
 
     /**

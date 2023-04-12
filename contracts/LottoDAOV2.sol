@@ -19,6 +19,7 @@ TODO
 [x] back to erc20
 [ ] better payout gratuity
 [ ] tf up with _start
+[ ] because reentrancy guard payout can be lazy but you should define _lastRewardBlock = block.number; before
 
  */
 
@@ -49,9 +50,9 @@ abstract contract LottoDAO is LottoGratuity {
     uint256 private _totalPlannedBlocks;
 
     // for the ERC777 that will be the DAO token
-    LottoRewardsToken private _lottoRewardsToken;
+    LottoRewardsToken public lottoRewardsToken;
     // allows people to stake the DAO token to receive ether rewards
-    StakingContract private _stakingContract;
+    StakingContract public stakingContract;
 
     // what gratuity the DAO/staking contract will be receiving per lottery payout
     uint256 private _daoGratuity;
@@ -72,23 +73,27 @@ abstract contract LottoDAO is LottoGratuity {
     ) {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
-        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
-        // _stakingContract = new StakingContract(address(_lottoRewardsToken));
+        lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
+        stakingContract = new StakingContract(address(lottoRewardsToken));
         _totalPlannedBlocks = totalPlannedBlocks;
         require(daoGratuity > 0, "DAO must get some reward");
-        _addBeneficiary(address(_stakingContract), daoGratuity);
+        _addBeneficiary(address(stakingContract), daoGratuity);
 
         _startingBlock = block.number;
         _lastRewardBlock = block.number;
     }
 
-    function calculateTokenReward() public virtual returns (uint256) {
+    function calculateTokenReward() public view virtual returns (uint256) {
+        return _calculateTokenReward(_lastRewardBlock);
+    }
+
+    function _calculateTokenReward(uint256 lastRewardBlock_) internal view virtual returns (uint256) {
         uint256 blockRewards;
         uint256 blockNumber_ = block.number;
         uint256 totalPlannedBlocks_ = _totalPlannedBlocks;
         uint256 startingBlock_ = _startingBlock;
-        uint256 lastRewardBlock_ = _lastRewardBlock;
-        _lastRewardBlock = blockNumber_;
+        // uint256 lastRewardBlock_ = _lastRewardBlock;
+        // _lastRewardBlock = blockNumber_;
         if (totalPlannedBlocks_ > blockNumber_ - startingBlock_) {
             unchecked {
                 blockRewards =
@@ -102,16 +107,17 @@ abstract contract LottoDAO is LottoGratuity {
         return blockRewards;
     }
 
+
     /**
      * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
      * @dev makes sure the lottery timer is over and balance reached the minimum pot.
      * uses some internal functions as we do not have access to private variables
      */
-    function payout() public virtual override nonReentrant returns (bool) {
-        super.payout();
+    function _payout(uint256 amount) internal virtual override {
+        super._payout(amount);
         _updateLottoTimer(block.number + roundLength());
-        _lottoRewardsToken.mint(_msgSender(), calculateTokenReward());
-        return true;
+        lottoRewardsToken.mint(_msgSender(), _calculateTokenReward(_lastRewardBlock));
+        _lastRewardBlock = block.number;
     }
 
     // /**
