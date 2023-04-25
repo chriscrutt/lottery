@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "./ILottoV2.sol";
 import "./LottoTicketsV2.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -19,14 +20,8 @@ TODO
 
  */
 
-contract Lottery is LottoTicketsV2, Context, ReentrancyGuard {
+contract Lottery is ILottery, LottoTicketsV2, Context, ReentrancyGuard {
     using Timers for Timers.BlockNumber;
-
-    // round info, easy
-    struct Round {
-        address winner;
-        uint256 pot;
-    }
 
     // list of all the rounds played
     Round[] private _rounds;
@@ -43,9 +38,6 @@ contract Lottery is LottoTicketsV2, Context, ReentrancyGuard {
 
     // what the ending block will be
     Timers.BlockNumber private _lottoTimer;
-
-    // on lottery payout
-    event Payout(address to, uint256 amount);
 
     /**
      * @notice sets up lottery and starts it!
@@ -72,56 +64,57 @@ contract Lottery is LottoTicketsV2, Context, ReentrancyGuard {
     /**
      * @notice buy tickets
      */
-    function buyTickets() public payable virtual returns (bool) {
+    function buyTickets() public payable virtual override returns (bool) {
         require(_lottoTimer.isPending() || address(this).balance <= _minPot, "lottery is over");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
         return true;
     }
 
+    function payout() public virtual override nonReentrant returns (bool) {
+        uint256 balance = address(this).balance;
+        require(balance >= _minPot, "minimum pot hasn't been reached");
+        _payout(balance);
+        return true;
+    }
+
     /**
      * @notice see blocks to go by before drawing winner for security reasons
      */
-    function payoutAvailableOnBlock() public view returns (uint256) {
+    function payoutAvailableOnBlock() public view virtual override returns (uint256) {
         return _lottoTimer.getDeadline() + _beforeDraw + _afterDraw;
     }
 
     /**
      * @notice get all lottery winners and pot
      */
-    function lotteryLookup(uint256 id) public view returns (Round memory) {
+    function lotteryLookup(uint256 id) public view virtual override returns (Round memory) {
         return _rounds[id];
     }
 
     /**
      * @notice minimum pot
      */
-    function minimumPot() public view virtual returns (uint256) {
+    function minimumPot() public view virtual override returns (uint256) {
         return _minPot;
     }
 
     /**
      * @notice what block number will the lotto finish on
      */
-    function lottoDeadline() public view virtual returns (uint256) {
+    function lottoDeadline() public view virtual override returns (uint256) {
         return _lottoTimer.getDeadline();
     }
 
     /**
      * @notice current block for player easy access
      */
-    function currentBlock() public view virtual returns (uint256) {
+    function currentBlock() public view virtual override returns (uint256) {
         return block.number;
     }
 
-    function roundLength() public view virtual returns (uint256) {
+    function roundLength() public view virtual override returns (uint256) {
         return _roundLength;
-    }
-
-    function payout() public virtual nonReentrant {
-        uint256 balance = address(this).balance;
-        require(balance >= _minPot, "minimum pot hasn't been reached");
-        _payout(balance);
     }
 
     function _updateLottoTimer(uint64 newTime) internal virtual {
@@ -147,7 +140,7 @@ contract Lottery is LottoTicketsV2, Context, ReentrancyGuard {
     /**
      * @dev calculates winning ticket using hashing blockhash, prevrandao, and number of tickets
      */
-    function _calculateWinningTicket() internal view returns (uint256) {
+    function _calculateWinningTicket() internal view virtual returns (uint256) {
         require(
             _lottoTimer.getDeadline() + _beforeDraw + _afterDraw < block.number,
             "wait for finality"
