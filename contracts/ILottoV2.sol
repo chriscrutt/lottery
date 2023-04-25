@@ -28,6 +28,8 @@ interface ILottery {
      */
     function lotteryLookup(uint256 id) external view returns (Round memory);
 
+    function currentRoundId() external view returns (uint256);
+
     /**
      * @notice minimum pot
      */

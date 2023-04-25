@@ -64,7 +64,7 @@ contract Lottery is ILottery, LottoTicketsV2, Context, ReentrancyGuard {
     /**
      * @notice buy tickets
      */
-    function buyTickets() public payable virtual override returns (bool) {
+    function buyTickets() public payable virtual override nonReentrant returns (bool) {
         require(_lottoTimer.isPending() || address(this).balance <= _minPot, "lottery is over");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
@@ -90,6 +90,10 @@ contract Lottery is ILottery, LottoTicketsV2, Context, ReentrancyGuard {
      */
     function lotteryLookup(uint256 id) public view virtual override returns (Round memory) {
         return _rounds[id];
+    }
+
+    function currentRoundId() public view virtual override returns (uint256) {
+        return _rounds.length;
     }
 
     /**
