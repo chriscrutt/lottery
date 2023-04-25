@@ -19,13 +19,13 @@ interface IStakingContract {
      * @notice stakes tokens
      * @param tokensToStake tokens to stake
      */
-    function stake(uint256 tokensToStake) external;
+    function stake(uint256 tokensToStake) external returns (bool);
 
     /**
      * @notice unstakes tokens
      * @param tokensToUnstake tokens to unstake
      */
-    function unstake(uint256 tokensToUnstake) external;
+    function unstake(uint256 tokensToUnstake) external returns (bool) ;
 
     /**
      * @notice withdraws available ether rewards

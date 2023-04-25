@@ -76,19 +76,19 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
      * @notice stakes tokens
      * @param tokensToStake tokens to stake
      */
-    function stake(uint256 tokensToStake) public virtual override nonReentrant {
+    function stake(uint256 tokensToStake) public virtual override nonReentrant returns (bool) {
         require(tokensToStake > 0, "staked tokens must be > 0");
-
         stakingToken.safeTransferFrom(_msgSender(), address(this), tokensToStake);
-
         _stake(tokensToStake, _msgSender());
+
+        return true;
     }
 
     /**
      * @notice unstakes tokens
      * @param tokensToUnstake tokens to unstake
      */
-    function unstake(uint256 tokensToUnstake) public virtual override nonReentrant {
+    function unstake(uint256 tokensToUnstake) public virtual override nonReentrant returns (bool) {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
         require(
             _players[_msgSender()].tokensStaked >= tokensToUnstake,
@@ -96,6 +96,8 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
         );
         _unstake(tokensToUnstake, _msgSender());
         stakingToken.safeTransfer(_msgSender(), tokensToUnstake);
+
+        return true;
     }
 
     /**
