@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "./LottoGratuityV2.sol";
 import "./StakingContract.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
@@ -17,21 +16,25 @@ TODO
 [ ] make some internal/private functions public?
 [ ] make sure daoGratuity also isn't 1000
 [ ] make it so all token transfers potentially can have callbacks when sent to smart contracts?
-[ ] back to erc20
+[x] back to erc20
 [ ] better payout gratuity
 [ ] tf up with _start
+[ ] because reentrancy guard payout can be lazy but you should define _lastRewardBlock = block.number; before
 
  */
 
-contract LottoRewardsToken is ERC20 {
+contract LottoRewardsToken is ERC20, Ownable {
     /**
      * @dev owners are "default operators" which pretty much just means they have authority to
      * spend anyone's tokens
      * @param name the name of the reward token
      * @param symbol the symbol of the reward token
      */
-    // solhint-disable-next-line no-empty-blocks
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
 }
 
 /**
@@ -49,14 +52,12 @@ abstract contract LottoDAO is LottoGratuity {
     uint256 private _totalPlannedBlocks;
 
     // for the ERC777 that will be the DAO token
-    LottoRewardsToken private _lottoRewardsToken;
+    LottoRewardsToken public lottoRewardsToken;
     // allows people to stake the DAO token to receive ether rewards
-    StakingContract private _stakingContract;
+    StakingContract public stakingContract;
 
     // what gratuity the DAO/staking contract will be receiving per lottery payout
     uint256 private _daoGratuity;
-
-    address[] private _owner = new address[](1);
 
     /**
      * @dev sets up EVERYTHING. includes info that'll make the DAO token and staking contract
@@ -64,13 +65,7 @@ abstract contract LottoDAO is LottoGratuity {
      * @param rewardTokenName name of DAO token
      * @param rewardTokenSymbol symbol of DAO token
      * @param totalPlannedBlocks asdf
-     * @param beneficiaries addresses that will be earning a percentage of the pot each payout
-     * @param gratuityTimes1000 gratuity per beneficiary so that 10% = 0.10 but * 1000 = 100
      * @param daoGratuity gratuity the DAO/staking contract should receive
-     * @param minPot_ the minimum pot in wei in order for the lottery to conclude
-     * @param lottoLength_ length in blocks since (re)start the lottery should go
-     * @param securityBeforeDraw_ amount of blocks before draw for finality
-     * @param securityAfterDraw_ amount of blocks after draw for finality
      */
     constructor(
         string memory rewardTokenName,
@@ -83,30 +78,21 @@ abstract contract LottoDAO is LottoGratuity {
         uint256 lottoLength_,
         uint256 securityBeforeDraw_,
         uint256 securityAfterDraw_
-    )
-        LottoGratuity(
-            beneficiaries,
-            gratuityTimes1000,
-            minPot_,
-            lottoLength_,
-            securityBeforeDraw_,
-            securityAfterDraw_
-        )
-    {
+    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
-        _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
-        // _stakingContract = new StakingContract(address(_lottoRewardsToken));
+        lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
+        stakingContract = new StakingContract(address(lottoRewardsToken));
         _totalPlannedBlocks = totalPlannedBlocks;
         require(daoGratuity > 0, "DAO must get some reward");
-        // _addBeneficiary(address(_stakingContract), daoGratuity);
+        _addBeneficiary(address(stakingContract), daoGratuity);
 
         _startingBlock = block.number;
+        _lastRewardBlock = block.number;
     }
 
     // /**
-    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving
-    //  * rewards tokens!
+    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
     //  * @dev makes sure the lottery timer is over and balance reached the minimum pot.
     //  * uses some internal functions as we do not have access to private variables
     //  */
@@ -128,20 +114,36 @@ abstract contract LottoDAO is LottoGratuity {
     //     _start(blockDif);
     // }
 
-    function calculateTokenReward() public virtual returns (uint256 blockRewards) {
-        if (_totalPlannedBlocks > block.number - _startingBlock) {
+    function _calculateTokenReward(uint256 lastRewardBlock_) internal view virtual returns (uint256) {
+        uint256 blockRewards;
+        uint256 blockNumber_ = block.number;
+        uint256 totalPlannedBlocks_ = _totalPlannedBlocks;
+        uint256 startingBlock_ = _startingBlock;
+        // uint256 lastRewardBlock_ = _lastRewardBlock;
+        // _lastRewardBlock = blockNumber_;
+        if (totalPlannedBlocks_ > blockNumber_ - startingBlock_) {
             unchecked {
                 blockRewards =
                     (((block.number - _lastRewardBlock + 1) *
-                        (2 *
-                            (_totalPlannedBlocks + _startingBlock) -
-                            _lastRewardBlock -
-                            block.number)) / 2) *
+                        (2 * (_totalPlannedBlocks + _startingBlock) - _lastRewardBlock - block.number)) / 2) *
                     10 ** 10;
             }
         } else {
-            blockRewards = block.number - _lastRewardBlock;
+            blockRewards = blockNumber_ - lastRewardBlock_;
         }
+        return blockRewards;
+    }
+
+
+    /**
+     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
+     * @dev makes sure the lottery timer is over and balance reached the minimum pot.
+     * uses some internal functions as we do not have access to private variables
+     */
+    function _payout(uint256 amount) internal virtual override {
+        super._payout(amount);
+        _updateLottoTimer(block.number + roundLength());
+        lottoRewardsToken.mint(_msgSender(), _calculateTokenReward(_lastRewardBlock));
         _lastRewardBlock = block.number;
     }
 
