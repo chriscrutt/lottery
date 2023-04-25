@@ -19,7 +19,7 @@ TODO
 
  */
 
-abstract contract LottoGratuity is BasicLotto {
+abstract contract LottoGratuity is Lottery {
     using Math for uint256;
 
     // beneficiary data
@@ -39,10 +39,7 @@ abstract contract LottoGratuity is BasicLotto {
      * @param beneficiaries to get mulla
      * @param gratuityTimes1000 for each beneficiary
      */
-    constructor(
-        address[] memory beneficiaries,
-        uint256[] memory gratuityTimes1000
-    ) {
+    constructor(address[] memory beneficiaries, uint256[] memory gratuityTimes1000) {
         uint256 len = beneficiaries.length;
         require(len == gratuityTimes1000.length, "array length mismatch");
         for (uint256 i = 0; i < len; ++i) {
@@ -51,6 +48,14 @@ abstract contract LottoGratuity is BasicLotto {
             require(_totalGratuity < 1000, "gratuity is (greater than) 100%");
             _beneficiaries.push(Beneficiary(beneficiaries[i], gratuityTimes1000[i]));
         }
+    }
+
+    function viewBeneficiaries() public view virtual returns (Beneficiary[] memory) {
+        return _beneficiaries;
+    }
+
+    function totalGratuity() public view virtual returns (uint256) {
+        return _totalGratuity;
     }
 
     /**
