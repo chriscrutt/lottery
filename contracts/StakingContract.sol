@@ -104,9 +104,11 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
      * @notice withdraws available ether rewards
      * @param amount ether to claim
      */
-    function withdrawRewards(uint256 amount) public virtual override nonReentrant {
+    function withdrawRewards(uint256 amount) public virtual override nonReentrant returns (bool) {
         require(amount > 0, "amount must be > 0");
         _withdrawRewards(_msgSender(), amount);
+
+        return true;
     }
 
     /**
@@ -148,6 +150,7 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
             _players[staker].tokensStaked += tokensToStake;
         }
         _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
+        emit Stake(staker, tokensToStake);
     }
 
     /**
@@ -161,6 +164,7 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
             _totalCurrentlyStaked -= tokensToUnstake;
         }
         _players[staker].snapshots.push(Snapshot(block.number, _players[staker].tokensStaked));
+        emit Unstake(staker, tokensToUnstake);
     }
 
     /**
@@ -184,6 +188,7 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
             }
         }
         require(payable(account).send(amount), "eth transfer failed");
+        emit WithdrawRewards(account, amount);
     }
 
     function _accEth(address account) private view returns (uint256 eth) {

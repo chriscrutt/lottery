@@ -13,6 +13,10 @@ struct Payouts {
  * @dev Interface of StakingContract
  */
 interface IStakingContract {
+    event Stake(address indexed account, uint256 amount);
+    event Unstake(address indexed account, uint256 amount);
+    event WithdrawRewards(address indexed account, uint256 amount);
+
     receive() external payable;
 
     /**
@@ -25,13 +29,13 @@ interface IStakingContract {
      * @notice unstakes tokens
      * @param tokensToUnstake tokens to unstake
      */
-    function unstake(uint256 tokensToUnstake) external returns (bool) ;
+    function unstake(uint256 tokensToUnstake) external returns (bool);
 
     /**
      * @notice withdraws available ether rewards
      * @param amount ether to claim
      */
-    function withdrawRewards(uint256 amount) external;
+    function withdrawRewards(uint256 amount) external returns (bool);
 
     /**
      * @notice returns array of lottery payouts

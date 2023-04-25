@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import "./LottoTicketsV2.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Timers.sol";
 
 /**
 
@@ -18,7 +19,9 @@ TODO
 
  */
 
-contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
+contract Lottery is LottoTicketsV2, Context, ReentrancyGuard {
+    using Timers for Timers.BlockNumber;
+
     // round info, easy
     struct Round {
         address winner;
@@ -39,7 +42,7 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     uint256 private _afterDraw;
 
     // what the ending block will be
-    uint256 private _lottoTimer;
+    Timers.BlockNumber private _lottoTimer;
 
     // on lottery payout
     event Payout(address to, uint256 amount);
@@ -63,14 +66,14 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         _beforeDraw = securityBeforeDraw_;
         _afterDraw = securityAfterDraw_;
         // _endingBlock = block.number + lottoLength_;
-        _lottoTimer = block.number + lottoLength_;
+        _lottoTimer.setDeadline(uint64(block.number + lottoLength_));
     }
 
     /**
      * @notice buy tickets
      */
     function buyTickets() public payable virtual returns (bool) {
-        require(block.number <= _lottoTimer || address(this).balance <= _minPot, "lottery is over");
+        require(_lottoTimer.isPending() || address(this).balance <= _minPot, "lottery is over");
         require(msg.value > 0, "gotta pay to play");
         _mintTickets(_msgSender(), msg.value);
         return true;
@@ -80,7 +83,7 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
      * @notice see blocks to go by before drawing winner for security reasons
      */
     function payoutAvailableOnBlock() public view returns (uint256) {
-        return _lottoTimer + _beforeDraw + _afterDraw;
+        return _lottoTimer.getDeadline() + _beforeDraw + _afterDraw;
     }
 
     /**
@@ -101,7 +104,7 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
      * @notice what block number will the lotto finish on
      */
     function lottoDeadline() public view virtual returns (uint256) {
-        return _lottoTimer;
+        return _lottoTimer.getDeadline();
     }
 
     /**
@@ -121,8 +124,8 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
         _payout(balance);
     }
 
-    function _updateLottoTimer(uint256 newTime) internal virtual {
-        _lottoTimer = newTime;
+    function _updateLottoTimer(uint64 newTime) internal virtual {
+        _lottoTimer.setDeadline(newTime);
     }
 
     /**
@@ -145,9 +148,18 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
      * @dev calculates winning ticket using hashing blockhash, prevrandao, and number of tickets
      */
     function _calculateWinningTicket() internal view returns (uint256) {
-        require(_lottoTimer + _beforeDraw + _afterDraw < block.number, "wait for finality");
+        require(
+            _lottoTimer.getDeadline() + _beforeDraw + _afterDraw < block.number,
+            "wait for finality"
+        );
         return
-            uint256(keccak256(abi.encodePacked(blockhash(_lottoTimer + _beforeDraw), address(this).balance))) %
-            address(this).balance;
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        blockhash(_lottoTimer.getDeadline() + _beforeDraw),
+                        address(this).balance
+                    )
+                )
+            ) % address(this).balance;
     }
 }
