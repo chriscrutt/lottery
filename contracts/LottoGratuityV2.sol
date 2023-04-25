@@ -13,7 +13,7 @@ TODO
 [x] add ignore to functions mixed up because where they are placed right now makes it flow better
 [x] add NatSpec
 [ ] make some internal/private functions public?
-[ ] emit something if beneficiary was swapped/added/removed. Do something if beneficiary doesn't exist
+[ ] emit if beneficiary was swapped/added/removed. Do something if beneficiary doesn't exist
 [x] remove beneficiary revert statement wrong and swap
 [ ] the public `payout` function SHOULD have a reentrancy guard
 
@@ -113,7 +113,11 @@ contract LottoGratuity is BasicLotto {
      * @param newBeneficiary to be added
      * @param newGratuity to be given
      */
-    function _swapBeneficiary(address oldBeneficiary, address newBeneficiary, uint256 newGratuity) internal {
+    function _swapBeneficiary(
+        address oldBeneficiary,
+        address newBeneficiary,
+        uint256 newGratuity
+    ) internal {
         require(newBeneficiary != address(0), "can't be 0 address");
         uint256 len = _beneficiaries.length;
         for (uint256 i = 0; i < len; ++i) {

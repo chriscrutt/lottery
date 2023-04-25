@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
@@ -25,7 +25,7 @@ TODO
 [-] make .send .transfer maybe
 [x] make sure only owners of their addresses can withdraw eth/stake
 [-] (run in remix) if withdrawing all, delete history to clear up storage- not if unstaking all
-[ ] when to make functions public, external, private, internal - receivedPayout??? tokensReceived???
+[x] when to make functions public, external, private, internal - receivedPayout??? tokensReceived???
 [x] change lotto payout to having the lottery contract call it
 [x] cant delete snapshots cause rely on it for acc eth
 
@@ -33,7 +33,7 @@ TODO
  */
 contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract {
     using Math for uint256;
-    // using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20;
 
     // snapshot of last token transfer
     struct Snapshot {
@@ -80,8 +80,7 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
     function stake(uint256 tokensToStake) public virtual override nonReentrant returns (bool) {
         require(tokensToStake > 0, "staked tokens must be > 0");
 
-        // stakingToken.safeTransferFrom(
-        stakingToken.transferFrom(_msgSender(), address(this), tokensToStake);
+        stakingToken.safeTransferFrom(_msgSender(), address(this), tokensToStake);
 
         _stake(tokensToStake, _msgSender());
         return true;
@@ -93,10 +92,12 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
      */
     function unstake(uint256 tokensToUnstake) public virtual override nonReentrant returns (bool) {
         require(tokensToUnstake > 0, "must unstake > 0 tokens");
-        require(_players[_msgSender()].tokensStaked >= tokensToUnstake, "unstaking too many tokens");
+        require(
+            _players[_msgSender()].tokensStaked >= tokensToUnstake,
+            "unstaking too many tokens"
+        );
         _unstake(tokensToUnstake, _msgSender());
-        // stakingToken.safeTransfer(_msgSender(), tokensToUnstake);
-        stakingToken.transfer(_msgSender(), tokensToUnstake);
+        stakingToken.safeTransfer(_msgSender(), tokensToUnstake);
         return true;
     }
 
@@ -177,7 +178,9 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
 
             if (amount == eth) {
                 delete _players[account].snapshots;
-                _players[account].snapshots.push(Snapshot(block.number, _players[account].tokensStaked));
+                _players[account].snapshots.push(
+                    Snapshot(block.number, _players[account].tokensStaked)
+                );
                 _players[account].etherWithdrawn = 0;
             } else {
                 _players[account].etherWithdrawn += amount;
@@ -197,15 +200,27 @@ contract StakingContract is Context, ReentrancyGuard, Ownable, IStakingContract 
         // make special case for first staked?
 
         // find startingPoint of the first lottery who's timestamp is after their first transaction
-        uint256 startingPoint = _binarySearchUpExclusive(lottoHistory, stakeHistory[0].blockNumber, 0);
+        uint256 startingPoint = _binarySearchUpExclusive(
+            lottoHistory,
+            stakeHistory[0].blockNumber,
+            0
+        );
 
         // find the transaction that is closest to the start of that lottery
-        uint256 txNum = _binarySearchDownExclusive(stakeHistory, lottoHistory[startingPoint].blockNumber, 0);
+        uint256 txNum = _binarySearchDownExclusive(
+            stakeHistory,
+            lottoHistory[startingPoint].blockNumber,
+            0
+        );
         require(txNum < type(uint256).max, "tx not found");
 
         // iterate through the lotteries
         while (startingPoint < len) {
-            txNum = _binarySearchDownExclusive(stakeHistory, lottoHistory[startingPoint].blockNumber, txNum);
+            txNum = _binarySearchDownExclusive(
+                stakeHistory,
+                lottoHistory[startingPoint].blockNumber,
+                txNum
+            );
 
             // calculate the amount of Ether accumulated during the current lottery
             eth += lottoHistory[startingPoint].amount.mulDiv(

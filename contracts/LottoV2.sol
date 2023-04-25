@@ -51,7 +51,12 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
      * @param securityBeforeDraw_ blocks to wait before drawing for security
      * @param securityAfterDraw_ blocks to wait before payout for security
      */
-    constructor(uint256 minPot_, uint256 lottoLength_, uint256 securityBeforeDraw_, uint256 securityAfterDraw_) {
+    constructor(
+        uint256 minPot_,
+        uint256 lottoLength_,
+        uint256 securityBeforeDraw_,
+        uint256 securityAfterDraw_
+    ) {
         require(minPot_ > 0, "need garunteed participant");
         _minPot = minPot_;
         _roundLength = lottoLength_;
@@ -140,7 +145,10 @@ contract BasicLotto is LottoTicketsV2, Context, ReentrancyGuard {
     function _calculateWinningTicket() internal view returns (uint256) {
         require(_lottoTimer + _beforeDraw < block.number, "wait for finality");
         return
-            uint256(keccak256(abi.encodePacked(blockhash(_lottoTimer + _afterDraw), address(this).balance))) %
-            address(this).balance;
+            uint256(
+                keccak256(
+                    abi.encodePacked(blockhash(_lottoTimer + _afterDraw), address(this).balance)
+                )
+            ) % address(this).balance;
     }
 }

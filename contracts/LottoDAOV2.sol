@@ -25,17 +25,20 @@ TODO
 
 contract LottoRewardsToken is ERC20 {
     /**
-     * @dev owners are "default operators" which pretty much just means they have authority to spend anyone's tokens
+     * @dev owners are "default operators" which pretty much just means they have authority to
+     * spend anyone's tokens
      * @param name the name of the reward token
      * @param symbol the symbol of the reward token
      */
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
+    // solhint-disable-next-line no-empty-blocks
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 }
 
 /**
  * @notice allows for anyone to restart the lottery for a reward!
- * @dev an itteration of LottoGratuity that allows for a DAO token to be minted when the lottery is restarted
- * they can then stake the tokens in the StakingContract and earn ether rewards that get sent via a specified gratuity
+ * @dev an itteration of LottoGratuity that allows for a DAO token to be minted when the lottery is
+ * restarted they can then stake the tokens in the StakingContract and earn ether rewards that get
+ * sent via a specified gratuity
  */
 abstract contract LottoDAO is LottoGratuity {
     // mainly for mulDiv() because it is cheaper somehow
@@ -80,7 +83,16 @@ abstract contract LottoDAO is LottoGratuity {
         uint256 lottoLength_,
         uint256 securityBeforeDraw_,
         uint256 securityAfterDraw_
-    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
+    )
+        LottoGratuity(
+            beneficiaries,
+            gratuityTimes1000,
+            minPot_,
+            lottoLength_,
+            securityBeforeDraw_,
+            securityAfterDraw_
+        )
+    {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
         _lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
@@ -93,7 +105,8 @@ abstract contract LottoDAO is LottoGratuity {
     }
 
     // /**
-    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
+    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving
+    //  * rewards tokens!
     //  * @dev makes sure the lottery timer is over and balance reached the minimum pot.
     //  * uses some internal functions as we do not have access to private variables
     //  */
@@ -120,7 +133,10 @@ abstract contract LottoDAO is LottoGratuity {
             unchecked {
                 blockRewards =
                     (((block.number - _lastRewardBlock + 1) *
-                        (2 * (_totalPlannedBlocks + _startingBlock) - _lastRewardBlock - block.number)) / 2) *
+                        (2 *
+                            (_totalPlannedBlocks + _startingBlock) -
+                            _lastRewardBlock -
+                            block.number)) / 2) *
                     10 ** 10;
             }
         } else {
@@ -131,8 +147,9 @@ abstract contract LottoDAO is LottoGratuity {
 
     // /**
     //  * @notice starts the lottery after payout
-    //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until the lottery is started
-    //  * it does this by iterating through each block since the lottery ended and then finally updates state variable
+    //  * rewards per block depreciate at a rate of 0.1% each block and adds them together until
+    //  * the lottery is started it does this by iterating through each block since the lottery
+    //  * ended and then finally updates state variable
     //  * @param blockDif is used to calculate the amount of DAO tokens to mint.
     //  */
     // function _start(uint256 blockDif) internal virtual {
