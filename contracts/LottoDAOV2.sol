@@ -19,7 +19,8 @@ TODO
 [x] back to erc20
 [ ] better payout gratuity
 [ ] tf up with _start
-[ ] because reentrancy guard payout can be lazy but you should define _lastRewardBlock = block.number; before
+[ ] because reentrancy guard payout can be lazy but you should define 
+_lastRewardBlock = block.number; before
 
  */
 
@@ -30,7 +31,8 @@ contract LottoRewardsToken is ERC20, Ownable {
      * @param name the name of the reward token
      * @param symbol the symbol of the reward token
      */
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {} // solhint-disable-line no-empty-blocks
+    // solhint-disable-next-line no-empty-blocks
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
@@ -78,7 +80,10 @@ abstract contract LottoDAO is LottoGratuity {
         uint256 lottoLength_,
         uint256 securityBeforeDraw_,
         uint256 securityAfterDraw_
-    ) LottoGratuity(beneficiaries, gratuityTimes1000, minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_) {
+    )
+        Lottery(minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_)
+        LottoGratuity(beneficiaries, gratuityTimes1000)
+    {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
         lottoRewardsToken = new LottoRewardsToken(rewardTokenName, rewardTokenSymbol);
@@ -92,7 +97,8 @@ abstract contract LottoDAO is LottoGratuity {
     }
 
     // /**
-    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
+    //  * @notice pays out winners and beneficiaries and restarts the lottery while receiving
+    //  * rewards tokens!
     //  * @dev makes sure the lottery timer is over and balance reached the minimum pot.
     //  * uses some internal functions as we do not have access to private variables
     //  */
@@ -114,7 +120,9 @@ abstract contract LottoDAO is LottoGratuity {
     //     _start(blockDif);
     // }
 
-    function _calculateTokenReward(uint256 lastRewardBlock_) internal view virtual returns (uint256) {
+    function _calculateTokenReward(
+        uint256 lastRewardBlock_
+    ) internal view virtual returns (uint256) {
         uint256 blockRewards;
         uint256 blockNumber_ = block.number;
         uint256 totalPlannedBlocks_ = _totalPlannedBlocks;
@@ -125,7 +133,10 @@ abstract contract LottoDAO is LottoGratuity {
             unchecked {
                 blockRewards =
                     (((block.number - _lastRewardBlock + 1) *
-                        (2 * (_totalPlannedBlocks + _startingBlock) - _lastRewardBlock - block.number)) / 2) *
+                        (2 *
+                            (_totalPlannedBlocks + _startingBlock) -
+                            _lastRewardBlock -
+                            block.number)) / 2) *
                     10 ** 10;
             }
         } else {
@@ -134,15 +145,15 @@ abstract contract LottoDAO is LottoGratuity {
         return blockRewards;
     }
 
-
     /**
-     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards tokens!
+     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards
+     * tokens!
      * @dev makes sure the lottery timer is over and balance reached the minimum pot.
      * uses some internal functions as we do not have access to private variables
      */
     function _payout(uint256 amount) internal virtual override {
         super._payout(amount);
-        _updateLottoTimer(block.number + roundLength());
+        _updateLottoTimer(uint64(block.number + roundLength()));
         lottoRewardsToken.mint(_msgSender(), _calculateTokenReward(_lastRewardBlock));
         _lastRewardBlock = block.number;
     }
