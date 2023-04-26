@@ -92,10 +92,6 @@ contract Lottery is ILottery, LottoTicketsV2, Context, ReentrancyGuard {
         return _rounds[id];
     }
 
-    function currentRoundId() public view virtual override returns (uint256) {
-        return _rounds.length;
-    }
-
     /**
      * @notice minimum pot
      */

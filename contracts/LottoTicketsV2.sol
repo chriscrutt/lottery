@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "./ILottoTicketsV2.sol";
 
 /**
 
@@ -13,14 +14,7 @@ TODO
 
  */
 
-contract LottoTicketsV2 {
-    // just some metadata on our players for fun
-    struct PlayerRounds {
-        uint256 alltimeTickets;
-        uint256 currentTickets;
-        uint256 mostRecentRound;
-    }
-
+contract LottoTicketsV2 is ILottoTicketsV2 {
     // allows players to deposit any amount of tickets
     struct TicketBundle {
         uint256 startingTicket;
@@ -43,35 +37,34 @@ contract LottoTicketsV2 {
     // how many lottery rounds have been started
     uint256 private _roundNumber;
 
-    // tickets BOUGHT
-    event TicketsMinted(address to, uint256 amount);
-
     /**
      * @notice metadata on players
      * @param player!
      */
-    function playerStats(address player) public view virtual returns (PlayerRounds memory) {
+    function playerStats(
+        address player
+    ) public view virtual override returns (PlayerRounds memory) {
         return (_playerInfo[player]);
     }
 
     /**
      * @notice total tickets bought all time!
      */
-    function totalTicketsAllTime() public view virtual returns (uint256) {
+    function totalTicketsAllTime() public view virtual override returns (uint256) {
         return _allTimeTicketNum;
     }
 
     /**
      * @notice current tickets circulating
      */
-    function circulatingTickets() public view virtual returns (uint256) {
+    function circulatingTickets() public view virtual override returns (uint256) {
         return _ticketNum;
     }
 
     /**
      * @notice round number!
      */
-    function round() public view virtual returns (uint256) {
+    function round() public view virtual override returns (uint256) {
         return _roundNumber;
     }
 
@@ -79,7 +72,7 @@ contract LottoTicketsV2 {
      * @notice find the owner of a ticket number
      * @param ticketNum ber!
      */
-    function findTicketOwner(uint256 ticketNum) public view virtual returns (address) {
+    function findTicketOwner(uint256 ticketNum) public view virtual override returns (address) {
         return _findTicketOwner(ticketNum);
     }
 

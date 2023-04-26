@@ -34,6 +34,7 @@ contract LottoRewardsToken is ERC20, Ownable {
     // solhint-disable-next-line no-empty-blocks
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
+    // solhint-disable-next-line comprehensive-interface
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
@@ -120,6 +121,24 @@ abstract contract LottoDAO is LottoGratuity {
     //     _start(blockDif);
     // }
 
+    /**
+     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards
+     * tokens!
+     * @dev makes sure the lottery timer is over and balance reached the minimum pot.
+     * uses some internal functions as we do not have access to private variables. In order to 
+     * satisfy game theory we reward them tokens after the payout so the caller is encouraged to
+     * come back and run the function again.
+     */
+    function _payout(uint256 amount) internal virtual override {
+        super._payout(amount);
+        _updateLottoTimer(uint64(block.number + roundLength()));
+        lottoRewardsToken.mint(_msgSender(), _calculateTokenReward(_lastRewardBlock));
+        _lastRewardBlock = block.number;
+    }
+
+    /**
+     * @dev can be calculated any way you want but this is what I liked /:
+     */
     function _calculateTokenReward(
         uint256 lastRewardBlock_
     ) internal view virtual returns (uint256) {
@@ -143,19 +162,6 @@ abstract contract LottoDAO is LottoGratuity {
             blockRewards = blockNumber_ - lastRewardBlock_;
         }
         return blockRewards;
-    }
-
-    /**
-     * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards
-     * tokens!
-     * @dev makes sure the lottery timer is over and balance reached the minimum pot.
-     * uses some internal functions as we do not have access to private variables
-     */
-    function _payout(uint256 amount) internal virtual override {
-        super._payout(amount);
-        _updateLottoTimer(uint64(block.number + roundLength()));
-        lottoRewardsToken.mint(_msgSender(), _calculateTokenReward(_lastRewardBlock));
-        _lastRewardBlock = block.number;
     }
 
     // /**
