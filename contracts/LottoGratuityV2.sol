@@ -19,7 +19,7 @@ TODO
 
  */
 
-abstract contract LottoGratuity is Lottery {
+abstract contract LottoGratuity is Lotto {
     using Math for uint256;
 
     // beneficiary data

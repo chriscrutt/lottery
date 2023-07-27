@@ -20,7 +20,7 @@ TODO
 
  */
 
-contract Lottery is ILottery, LottoTicketsV2, Context, ReentrancyGuard {
+contract Lotto is ILottery, LottoTicketsV2, Context, ReentrancyGuard {
     using Timers for Timers.BlockNumber;
 
     // list of all the rounds played

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" style="font-family:'Courier New', Courier, monospace;">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aloha!</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+    <style>
+        table,
+        th,
+        td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 8px;
+        }
+    </style>
+</head>
+
+<body style="width:50vw;">
+    <button id="connectWallet" style="font-family:'Courier New', Courier, monospace;">Connect Wallet</button>
+    <span id="walletAddress">Not connected</span>
+    <h1>Welcome To Kokoke's Hall of Steals!</h1>
+    <p>The hunt for the ultimate address is on!</p>
+    <p>The game starts when a single NFT is generated with the goal is to hold on to it as long as possible! The only
+        way to claim it is to e aihue (STEAL) it from the current holder! What's the catch? Not all wallets are eligible
+        to
+        steal! Wallet address are converted to numerical values and only values closer to the contract wallet's address
+        are eligible to steal.</p>
+    <p>Prove your superiority by having an address that is closer in numerical value to the contract address. Check your
+        percentage difference and button color to see if you're eligible to make your move. Leave a nice or nasty
+        message for the previous owner when you steal!</p>
+    <p>Good luck! E hele kokoke loa e lanakila.</p>
+    <div id="ipfs"></div>
+    <div>
+        <br><label for="addy">Check address for steal eligibility</label>
+        <input type="text" id="addy" style="width:42ch;font-family:'Courier New', Courier, monospace;"> <span
+            id="result"></span><br>
+    </div>
+    <p>To steal go to the contract address on Etherscan <a
+            href="https://etherscan.io/address/0xa13e407171e0f0658dfa97271c90dc8f488a41f6#writeContract"
+            target="_blank">0xa13e407171e0f0658dfa97271c90dc8f488a41f6</a>
+    </p>
+    <label for="messageInput">Or simply add a message and click steal </label>
+    <input type="text" id="messageInput" style="width:42ch;font-family:'Courier New', Courier, monospace;"
+        placeholder="message!"> <button style="font-family:'Courier New', Courier, monospace;" id="steal"
+        onclick="_steal()">steal</button><br><br>
+    <table id="transferEventsTable">
+        <thead>
+            <tr>
+                <th>Block Number</th>
+                <th>Tx Hash</th>
+                <th>Thief Address</th>
+                <th>Difference</th>
+                <th>Steal #</th>
+                <th>Message</th>
+                <th>~Time Held</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        const input = document.querySelector('#addy');
+        const mess = document.querySelector('#messageInput');
+        const result = document.querySelector('#result');
+        const steal = document.querySelector('#steal');
+        const table = document.querySelector("#transferEventsTable tbody");
+
+        input.addEventListener('input', () => {
+            if (!isNaN(input.value)) {
+                result.textContent = (input.value - CONTRACT_ADDRESS) / CONTRACT_ADDRESS * 100 + "%";
+                if (Math.abs(currentHolder - CONTRACT_ADDRESS) > Math.abs(input.value - CONTRACT_ADDRESS)) {
+                    result.style.color = "green";
+                } else {
+                    result.style.color = "red";
+                }
+            } else {
+                result.textContent = '';
+            }
+        });
+        const CONTRACT_ADDRESS = '0xa13e407171e0f0658dfa97271c90dc8f488a41f6';
+        const ABI = [
+            // Replace with your contract's ABI
+            // Including the Transfer event definition
+            "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+            "event Message(string indexed message)",
+            "function tokenURI(uint256 id) public view returns (string memory)",
+            "function eAihue(string message) external"
+        ];
+
+        // Connect to Ethereum provider
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+        async function _steal() {
+            try {
+                const yo = await contract.connect(provider.getSigner()).steal(mess.value);
+            } catch (error) {
+                alert(error.error.message);
+            }
+        }
+
+        const walletAddressSpan = document.getElementById('walletAddress');
+        const connectWalletButton = document.getElementById('connectWallet');
+        const ipfs = document.getElementById('ipfs');
+
+
+        async function connectWallet() {
+            try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                const account = accounts[0];
+                walletAddressSpan.innerHTML = `<a href="https://etherscan.io/address/${account}" target="_blank">${account}</a>`;
+                updateTable();
+            } catch (error) {
+                console.error('Error connecting wallet:', error);
+            }
+        }
+        var currentHolder;
+        async function updateTable() {
+            try {
+                await ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x1' }],
+                });
+            } catch (error) {
+                if (error.code === 4902) {
+                    console.error('This chain is not added to MetaMask.');
+                } else {
+                    console.error('Error switching network:', error);
+                }
+            }
+
+            console.log("updating table");
+            table.innerHTML = `<p>updating table</p>`;
+            try {
+                const filter = contract.filters.Transfer(null, null, null);
+                const events = await contract.queryFilter(filter, 17248449, "latest");
+                console.log(events);
+                var i = 0;
+                const ensPromises = events.map(async (event) => {
+                    const to = event.args.to;
+                    try {
+                        const yo = await provider.lookupAddress(to);
+                        return yo || to;
+                    } catch {
+                        console.log("lookupAddress failed for", to);
+                        return to;
+                    }
+                });
+
+                const ensNames = await Promise.all(ensPromises);
+
+                const messageFilter = contract.filters.Message(null);
+                const messageEvents = await contract.queryFilter(messageFilter, 17248448, "latest");
+
+                const messageMap = new Map();
+                messageEvents.forEach((event) => {
+                    messageMap.set(event.transactionHash, event.args.message);
+                });
+
+                table.innerHTML = "";
+                for (let j = 0; j < events.length; j++) {
+                    const event = events[j];
+                    const nextEvent = j < events.length - 1 ? events[j + 1] : null;
+                    const to = event.args.to;
+                    currentHolder = to;
+                    const ens = ensNames[j];
+                    const blockNumber = event.blockNumber.toString();
+                    const txHash = event.transactionHash;
+                    const difference = ((event.args.to - CONTRACT_ADDRESS) / CONTRACT_ADDRESS) * 100 + "%";
+                    const message = messageMap.get(txHash) || "No message";
+                    const durationHeld = nextEvent ? (nextEvent.blockNumber - event.blockNumber).toString() : (await provider.getBlockNumber() - event.blockNumber).toString();
+                    const row = `<tr>
+        <td><a href="https://etherscan.io/block/${blockNumber}" target="_blank">${blockNumber}</a></td>
+        <td><a href="https://etherscan.io/tx/${txHash}" target="_blank">${txHash.substring(0, 8)}</a></td>
+        <td><a href="https://etherscan.io/address/${to}" target="_blank">${ens}</a></td>
+        <td>${difference}</td>
+        <td>${i}</td>
+        <td>${message}</td>
+        <td>${formatDuration(durationHeld * 12)}</td>
+      </tr>`;
+                    i++;
+                    table.innerHTML = row + table.innerHTML;
+                }
+            } catch (error) {
+                console.error("Error updating table:", error);
+            }
+
+            if (Math.abs(currentHolder - CONTRACT_ADDRESS) > Math.abs(input.value - CONTRACT_ADDRESS)) {
+                result.style.color = "green";
+                steal.style.background = "green";
+            } else {
+                result.style.color = "red";
+                steal.style.background = "red";
+            }
+            console.log("table updated");
+        }
+
+
+
+        connectWalletButton.addEventListener('click', connectWallet);
+
+        async function getConnectedWalletAddress() {
+            console.log(2);
+            try {
+                const accounts = await ethereum.request({ method: 'eth_accounts' });
+                const account = accounts[0];
+                input.value = account;
+                result.textContent = (account - CONTRACT_ADDRESS) / CONTRACT_ADDRESS * 100 + "%";
+                if (account) {
+                    walletAddressSpan.innerHTML = `<a href="https://etherscan.io/address/${account}" target="_blank">${account}</a>`;
+                    console.log(3, account);
+                    return account;
+                }
+            } catch (error) {
+                console.error('Error getting connected wallet address:', error);
+            }
+            console.log(3, "null");
+            return null;
+        }
+
+        (async function () {
+            console.log(1);
+            const connectedAddress = await getConnectedWalletAddress();
+            if (connectedAddress) {
+                console.log(4);
+                updateTable();
+                const inputString = await contract.tokenURI(1);
+
+                const ipfsHash = inputString.split('ipfs://')[1].split('"')[0];
+                const ipfsUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+                ipfs.innerHTML += `<a href="https://opensea.io/assets/ethereum/0xa13e407171e0f0658dfa97271c90dc8f488a41f6/1" target="_blank"><image style="width:10vw;" src="${ipfsUrl}"></image></a>`;
+            }
+        })();
+
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', () => {
+                location.reload();
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+
+            contract.on('Transfer', () => {
+                updateTable();
+            });
+        } else {
+            alert('Please install MetaMask or another Ethereum-compatible browser extension');
+        }
+
+        function formatDuration(duration) {
+            let seconds = parseInt(duration % 60);
+            let minutes = parseInt((duration / 60) % 60);
+            let hours = parseInt((duration / 3600) % 24);
+            let days = parseInt(duration / (3600 * 24));
+
+            let durationString = "";
+
+            if (days > 0) {
+                durationString += days + " days ";
+            }
+
+            if (hours > 0) {
+                durationString += hours + " hours ";
+            }
+
+            if (minutes > 0) {
+                durationString += minutes + " minutes ";
+            }
+
+            if (seconds > 0) {
+                durationString += seconds + " seconds ";
+            }
+
+            return durationString.trim();
+        }
+
+
+    </script>
+</body>
+
+</html>

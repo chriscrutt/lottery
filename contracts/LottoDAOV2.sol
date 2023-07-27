@@ -74,16 +74,16 @@ abstract contract LottoDAO is LottoGratuity {
         string memory rewardTokenName,
         string memory rewardTokenSymbol,
         uint256 totalPlannedBlocks,
-        uint256 daoGratuity,
-        address[] memory beneficiaries,
-        uint256[] memory gratuityTimes1000,
-        uint256 minPot_,
-        uint256 lottoLength_,
-        uint256 securityBeforeDraw_,
-        uint256 securityAfterDraw_
+        uint256 daoGratuity
+        // address[] memory beneficiaries,
+        // uint256[] memory gratuityTimes1000,
+        // uint256 minPot_,
+        // uint256 lottoLength_,
+        // uint256 securityBeforeDraw_,
+        // uint256 securityAfterDraw_
     )
-        Lottery(minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_)
-        LottoGratuity(beneficiaries, gratuityTimes1000)
+        // Lotto(minPot_, lottoLength_, securityBeforeDraw_, securityAfterDraw_)
+        // LottoGratuity(beneficiaries, gratuityTimes1000)
     {
         address[] memory owner = new address[](1);
         owner[0] = address(this);
@@ -125,7 +125,7 @@ abstract contract LottoDAO is LottoGratuity {
      * @notice pays out winners and beneficiaries and restarts the lottery while receiving rewards
      * tokens!
      * @dev makes sure the lottery timer is over and balance reached the minimum pot.
-     * uses some internal functions as we do not have access to private variables. In order to 
+     * uses some internal functions as we do not have access to private variables. In order to
      * satisfy game theory we reward them tokens after the payout so the caller is encouraged to
      * come back and run the function again.
      */
